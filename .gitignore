@@ -3,5 +3,5 @@ data*
 *.jpeg
 *.jpg
 *.JPEG
-
+*runs*
 !*knee/**/*

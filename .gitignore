@@ -4,4 +4,6 @@ data/*
 *.jpg
 *.JPEG
 *runs*
-!*knee/**/*
+*knee/
+*data.zip
+!yolo_run/** 

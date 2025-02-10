@@ -7,3 +7,5 @@ data/*
 *knee/
 *data.zip
 !yolo_run/** 
+*.h5
+*.pth

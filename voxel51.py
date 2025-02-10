@@ -87,7 +87,7 @@ import fiftyone.brain as fob
 
 
 # Image embeddings
-fob.compute_visualization(dataset, brain_key="img_viz")
+fob.compute_visualization(dataset, brain_key="img_viz_22")
 
 # # Object patch embeddings
 fob.compute_visualization(dataset, patches_field="ground_truth", brain_key="gt_viz")

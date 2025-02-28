@@ -13,6 +13,7 @@ BATCH_SIZE = 32
 NUM_EPOCHS = 10
 LEARNING_RATE = 0.001
 NUM_CLASSES = 3
+ALEX_FREEZE_FEATURES = True
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Augmentation configuration (example)

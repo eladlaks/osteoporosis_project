@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import wandb
-from config import DATA_DIR, BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, DEVICE
+from config import DATA_DIR, BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, DEVICE,USE_TRANSFORM_AUGMENTATION_IN_TRAINING,USE_UNKNOW_CODE
 from data.dataset import ImageDataset
 from models.vgg19_model import get_vgg19_model
 from models.vit_model import get_vit_model
@@ -47,16 +47,68 @@ def run_training():
     wandb.init(project="image_classification_project", reinit=True)
     
     # Define transformations (resize, tensor conversion, normalization)
-    transform = transforms.Compose([
+    if USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
+        train_transform = transforms.Compose([
+        transforms.Resize((224, 224)),  
+        transforms.RandomRotation(degrees=10),  # Small random rotation
+        transforms.RandomHorizontalFlip(p=0.5),  # 50% chance to flip
+        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1)),  # Small shifts
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),  # Adjust contrast
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485], std=[0.229])  # Adjusted for medical images
+        ])
+    else:
+        train_transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+        ])
+    eval_transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225]),
     ])
-    
-    # Load the dataset
-    dataset = ImageDataset(DATA_DIR, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+    # Load the full dataset
+    full_dataset = ImageDataset(DATA_DIR)
+    total_size = len(full_dataset)
+    train_size = int(0.7 * total_size)
+    val_size = int(0.15 * total_size)
+    test_size = total_size - train_size - val_size
+
+    # Randomly split the dataset
+    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
+        full_dataset, [train_size, val_size, test_size]
+    )
+    train_dataset.dataset.transform = train_transform
+    val_dataset.dataset.transform = eval_transform
+    test_dataset.dataset.transform = eval_transform
+    if USE_UNKNOW_CODE:
+        # **Compute Class Distribution for Weighted Sampling**
+        class_counts = torch.bincount(torch.tensor([label for _, label in full_dataset.samples]))
+
+        # **Ensure All Classes Exist (Avoid Zero-Division Errors)**
+        total_samples = sum(class_counts).item()
+        class_weights = total_samples / class_counts  # Inverse frequency weighting
+        sample_weights = torch.tensor([class_weights[label] for _, label in full_dataset.samples])
+
+        # **Apply WeightedRandomSampler ONLY to Training Set**
+        train_sampler = torch.utils.data.WeightedRandomSampler(
+            sample_weights[train_dataset.indices], num_samples=len(train_dataset), replacement=True
+        )
+
+        # **DataLoaders (Batch Size & Sampler Only for Training)**
+        batch_size = 16
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_sampler)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+        val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+
+
     
     # Define loss criterion
     criterion = nn.CrossEntropyLoss()

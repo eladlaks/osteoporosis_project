@@ -2,7 +2,7 @@ import os
 import torch
 
 # Data configuration
-DATA_DIR = os.path.join(os.getcwd(), "data", "images")  # Directory containing images (sub-folders for each class)
+DATA_DIR = os.path.join(os.getcwd(), "data")  # Directory containing images (sub-folders for each class)
 DUPLICATE_THRESHOLD = 0.99  # (Not used directly here but can be adapted for more advanced duplicate checking)
 
 # Preprocessing configuration

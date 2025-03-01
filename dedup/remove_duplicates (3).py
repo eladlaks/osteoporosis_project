@@ -98,7 +98,7 @@ class DuplicateRemover:
 
 
 if __name__ == "__main__":
-    DATA_FOLDER = "data/images"
+    DATA_FOLDER = "data/"
     UNKNOWN_CLASS_FOLDER = "unknown_class"
     LOG_FILE = "duplicates_log.txt"
 

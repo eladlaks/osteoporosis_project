@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import wandb
 from config import DATA_DIR, BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, DEVICE,USE_TRANSFORM_AUGMENTATION_IN_TRAINING,USE_UNKNOW_CODE
-from data.dataset import ImageDataset
+from dataset_handler.dataset import ImageDataset
 from models.vgg19_model import get_vgg19_model
 from models.vit_model import get_vit_model
 from models.alexnet_model import get_alexnet_model

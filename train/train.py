@@ -114,7 +114,7 @@ def train_model(
 
 def run_training(args):
     # Initialize wandb for this run
-    init_wandb(project="image_classification_project", args=args)
+    init_wandb(project_name="image_classification_project", args=args)
     # Define transformations (resize, tensor conversion, normalization)
     if USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
         train_transform = transforms.Compose(

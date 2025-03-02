@@ -20,13 +20,15 @@ from models.alexnet_model import get_alexnet_model
 from models.resnet_model import get_resnet_model
 from torchvision import transforms
 
+from utils.logger import init_wandb
+
 
 def train_model(
     model, model_name, train_loader, val_loader, test_loader, criterion, optimizer
 ):
     model.to(DEVICE)
     model.train()
-#############################3
+    #############################3
     for epoch in range(NUM_EPOCHS):
         model.train()
         running_loss = 0.0
@@ -39,11 +41,13 @@ def train_model(
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * images.size(0)
-        
+
         epoch_loss = running_loss / len(train_loader.dataset)
-        print(f"[{model_name}] Epoch {epoch+1}/{NUM_EPOCHS}, Training Loss: {epoch_loss:.4f}")
-        wandb.log({f"{model_name}_train_loss": epoch_loss, "epoch": epoch+1})
-        
+        print(
+            f"[{model_name}] Epoch {epoch+1}/{NUM_EPOCHS}, Training Loss: {epoch_loss:.4f}"
+        )
+        wandb.log({f"{model_name}_train_loss": epoch_loss, "epoch": epoch + 1})
+
         # Validation step
         model.eval()
         val_loss = 0.0
@@ -56,22 +60,30 @@ def train_model(
                 outputs = model(images)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item() * images.size(0)
-                
+
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-        
+
         avg_val_loss = val_loss / len(val_loader.dataset)
         val_accuracy = correct / total
-        print(f"[{model_name}] Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}")
-        wandb.log({f"{model_name}_val_loss": avg_val_loss, f"{model_name}_val_acc": val_accuracy, "epoch": epoch+1})
-    
+        print(
+            f"[{model_name}] Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}"
+        )
+        wandb.log(
+            {
+                f"{model_name}_val_loss": avg_val_loss,
+                f"{model_name}_val_acc": val_accuracy,
+                "epoch": epoch + 1,
+            }
+        )
+
     # Save model weights after training
     model_save_path = os.path.join("saved_models", f"{model_name}.pth")
     os.makedirs("saved_models", exist_ok=True)
     torch.save(model.state_dict(), model_save_path)
     print(f"Saved {model_name} model to {model_save_path}")
-    
+
     # Optionally, run a final evaluation on the test set
     model.eval()
     test_loss = 0.0
@@ -89,14 +101,20 @@ def train_model(
             correct += (predicted == labels).sum().item()
     avg_test_loss = test_loss / len(test_loader.dataset)
     test_accuracy = correct / total
-    print(f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")
-    wandb.log({f"{model_name}_test_loss": avg_test_loss, f"{model_name}_test_acc": test_accuracy})
+    print(
+        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}"
+    )
+    wandb.log(
+        {
+            f"{model_name}_test_loss": avg_test_loss,
+            f"{model_name}_test_acc": test_accuracy,
+        }
+    )
 
 
-def run_training():
+def run_training(args):
     # Initialize wandb for this run
-    wandb.init(project="image_classification_project", reinit=True)
-
+    init_wandb(project="image_classification_project", args=args)
     # Define transformations (resize, tensor conversion, normalization)
     if USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
         train_transform = transforms.Compose(

@@ -1,4 +1,3 @@
-import argparse
 import wandb
 import config
 

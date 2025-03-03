@@ -7,16 +7,16 @@ from train.train import run_training
 def parse_args():
     parser = argparse.ArgumentParser(description="Train an image classification model")
     parser.add_argument(
-        "--learning_rate",
+        "--LEARNING_RATE",
         type=float,
         default=config.LEARNING_RATE,
-        help="Learning rate",
+        help="LEARNING RATE",
     )
     parser.add_argument(
-        "--batch_size", type=int, default=config.BATCH_SIZE, help="Batch size"
+        "--BATCH_SIZE", type=int, default=config.BATCH_SIZE, help="BATCH SIZE"
     )
     parser.add_argument(
-        "--num_epochs", type=int, default=config.NUM_EPOCHS, help="Number of epochs"
+        "--NUM_EPOCHS", type=int, default=config.NUM_EPOCHS, help="NUMBER OF EPOCHS"
     )
     return parser.parse_args()
 

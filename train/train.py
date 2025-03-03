@@ -4,15 +4,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import wandb
-from config import (
-    DATA_DIR,
-    BATCH_SIZE,
-    NUM_EPOCHS,
-    LEARNING_RATE,
-    DEVICE,
-    USE_TRANSFORM_AUGMENTATION_IN_TRAINING,
-    USE_UNKNOW_CODE,
-)
 from dataset_handler.dataset import ImageDataset
 from models.vgg19_model import get_vgg19_model
 from models.vit_model import get_vit_model
@@ -26,15 +17,15 @@ from utils.logger import init_wandb
 def train_model(
     model, model_name, train_loader, val_loader, test_loader, criterion, optimizer
 ):
-    model.to(DEVICE)
+    model.to(wandb.config.DEVICE)
     model.train()
     #############################3
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(wandb.config.NUM_EPOCHS):
         model.train()
         running_loss = 0.0
         for images, labels in train_loader:
-            images = images.to(DEVICE)
-            labels = labels.to(DEVICE)
+            images = images.to(wandb.config.DEVICE)
+            labels = labels.to(wandb.config.DEVICE)
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -44,7 +35,7 @@ def train_model(
 
         epoch_loss = running_loss / len(train_loader.dataset)
         print(
-            f"[{model_name}] Epoch {epoch+1}/{NUM_EPOCHS}, Training Loss: {epoch_loss:.4f}"
+            f"[{model_name}] Epoch {epoch+1}/{wandb.config.NUM_EPOCHS}, Training Loss: {epoch_loss:.4f}"
         )
         wandb.log({f"{model_name}_train_loss": epoch_loss, "epoch": epoch + 1})
 
@@ -55,8 +46,8 @@ def train_model(
         total = 0
         with torch.no_grad():
             for images, labels in val_loader:
-                images = images.to(DEVICE)
-                labels = labels.to(DEVICE)
+                images = images.to(wandb.config.DEVICE)
+                labels = labels.to(wandb.config.DEVICE)
                 outputs = model(images)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item() * images.size(0)
@@ -91,8 +82,8 @@ def train_model(
     total = 0
     with torch.no_grad():
         for images, labels in test_loader:
-            images = images.to(DEVICE)
-            labels = labels.to(DEVICE)
+            images = images.to(wandb.config.DEVICE)
+            labels = labels.to(wandb.config.DEVICE)
             outputs = model(images)
             loss = criterion(outputs, labels)
             test_loss += loss.item() * images.size(0)
@@ -116,7 +107,7 @@ def run_training(args):
     # Initialize wandb for this run
     init_wandb(project_name="image_classification_project", args=args)
     # Define transformations (resize, tensor conversion, normalization)
-    if USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
+    if wandb.config.USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
         train_transform = transforms.Compose(
             [
                 transforms.Resize((224, 224)),
@@ -150,7 +141,7 @@ def run_training(args):
         ]
     )
     # Load the full dataset
-    full_dataset = ImageDataset(DATA_DIR)
+    full_dataset = ImageDataset(wandb.config.DATA_DIR)
     total_size = len(full_dataset)
     train_size = int(0.7 * total_size)
     val_size = int(0.15 * total_size)
@@ -163,7 +154,7 @@ def run_training(args):
     train_dataset.dataset.transform = train_transform
     val_dataset.dataset.transform = eval_transform
     test_dataset.dataset.transform = eval_transform
-    if USE_UNKNOW_CODE:
+    if wandb.config.USE_UNKNOW_CODE:
         # **Compute Class Distribution for Weighted Sampling**
         class_counts = torch.bincount(
             torch.tensor([label for _, label in full_dataset.samples])
@@ -192,13 +183,22 @@ def run_training(args):
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     else:
         train_loader = DataLoader(
-            train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4
+            train_dataset,
+            batch_size=wandb.config.BATCH_SIZE,
+            shuffle=True,
+            num_workers=4,
         )
         val_loader = DataLoader(
-            val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4
+            val_dataset,
+            batch_size=wandb.config.BATCH_SIZE,
+            shuffle=False,
+            num_workers=4,
         )
         test_loader = DataLoader(
-            test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4
+            test_dataset,
+            batch_size=wandb.config.BATCH_SIZE,
+            shuffle=False,
+            num_workers=4,
         )
 
     # Define loss criterion
@@ -215,7 +215,7 @@ def run_training(args):
     for model_name, model_func in models_to_train:
         print(f"Training {model_name} model...")
         model = model_func()
-        optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+        optimizer = optim.Adam(model.parameters(), lr=wandb.config.LEARNING_RATE)
         train_model(
             model,
             model_name,

@@ -8,6 +8,8 @@ def init_wandb(project_name="image_classification_project", args={}):
 
     # Override config parameters with any command-line arguments
     arg_dict = vars(args)
+    arg_dict = {k.upper(): v for k, v in arg_dict.items()}
+
     config_dict.update(arg_dict)
 
     # Initialize wandb with the full configuration

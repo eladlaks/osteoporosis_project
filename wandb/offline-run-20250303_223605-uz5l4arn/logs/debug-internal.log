@@ -1,0 +1,7 @@
+{"time":"2025-03-03T22:36:05.2969195+07:00","level":"INFO","msg":"stream: starting","core version":"0.19.7","symlink path":"c:\\Users\\elad\\Desktop\\rnd\\osteoporosis_project\\wandb\\offline-run-20250303_223605-uz5l4arn\\logs\\debug-core.log"}
+{"time":"2025-03-03T22:36:06.1504974+07:00","level":"INFO","msg":"created new stream","id":"uz5l4arn"}
+{"time":"2025-03-03T22:36:06.1510268+07:00","level":"INFO","msg":"stream: started","id":"uz5l4arn"}
+{"time":"2025-03-03T22:36:06.1510268+07:00","level":"INFO","msg":"writer: Do: started","stream_id":"uz5l4arn"}
+{"time":"2025-03-03T22:36:06.1510268+07:00","level":"INFO","msg":"sender: started","stream_id":"uz5l4arn"}
+{"time":"2025-03-03T22:36:06.1510268+07:00","level":"INFO","msg":"handler: started","stream_id":"uz5l4arn"}
+{"time":"2025-03-03T22:36:06.1642878+07:00","level":"INFO","msg":"Starting system monitor"}

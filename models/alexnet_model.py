@@ -18,7 +18,7 @@ def get_alexnet_model():
         nn.Linear(4096, 512),  # Second FC layer
         nn.ReLU(),
         nn.Linear(
-            512, len(wandb.config.NUM_CLASSES)
+            512, wandb.config.NUM_CLASSES
         ),  # Final output layer with correct num_labels
     )
     # model.classifier[6] = nn.Linear(in_features, wandb.config.NUM_CLASSES)

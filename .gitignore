@@ -1,4 +1,4 @@
-data/images**/.png
+data/*
 *.png
 *.jpeg
 *.jpg
@@ -10,3 +10,4 @@ data/images**/.png
 *.h5
 *.pth
 *.pyc
+wandb*

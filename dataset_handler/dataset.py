@@ -3,8 +3,9 @@ import glob
 from PIL import Image
 from torch.utils.data import Dataset
 import hashlib
-
+import wandb
 from preprocessing.preprocess import preprocess_image
+
 
 class ImageDataset(Dataset):
     def __init__(self, root_dir, transform=None):
@@ -22,7 +23,11 @@ class ImageDataset(Dataset):
     def _load_dataset(self):
         # Remove duplicate images based on file hash
         seen_hashes = set()
-        class_folders = [d for d in os.listdir(self.root_dir) if os.path.isdir(os.path.join(self.root_dir, d))]
+        class_folders = [
+            d
+            for d in os.listdir(self.root_dir)
+            if os.path.isdir(os.path.join(self.root_dir, d))
+        ]
         class_folders.sort()  # ensure consistent ordering
         for label, class_name in enumerate(class_folders):
             folder_path = os.path.join(self.root_dir, class_name)
@@ -31,7 +36,7 @@ class ImageDataset(Dataset):
                     with open(img_path, "rb") as f:
                         img_bytes = f.read()
                         img_hash = hashlib.md5(img_bytes).hexdigest()
-                    if img_hash in seen_hashes:
+                    if img_hash in seen_hashes and wandb.config.SKIP_DUP_DATA:
                         continue  # skip duplicate image
                     seen_hashes.add(img_hash)
                     self.image_paths.append(img_path)

@@ -208,8 +208,8 @@ def run_training(args):
         # ("VGG19", get_vgg19_model),
         # ("ViT", get_vit_model),
         # ("AlexNet", get_alexnet_model),
-        ("Gideon_Alexnet", get_gideon_alexnet_model),
-        # ("ResNet50", get_resnet_model),
+        # ("Gideon_Alexnet", get_gideon_alexnet_model),
+        ("ResNet50", get_resnet_model),
     ]
 
     for model_name, model_func in models_to_train:

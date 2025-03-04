@@ -8,6 +8,7 @@ from dataset_handler.dataset import ImageDataset
 from models.vgg19_model import get_vgg19_model
 from models.vit_model import get_vit_model
 from models.alexnet_model import get_alexnet_model
+from models.gideon_alex_net import get_gideon_alexnet_model
 from models.resnet_model import get_resnet_model
 from torchvision import transforms
 
@@ -18,8 +19,6 @@ def train_model(
     model, model_name, train_loader, val_loader, test_loader, criterion, optimizer
 ):
     model.to(wandb.config.DEVICE)
-    model.train()
-    #############################3
     for epoch in range(wandb.config.NUM_EPOCHS):
         model.train()
         running_loss = 0.0
@@ -209,6 +208,7 @@ def run_training(args):
         # ("VGG19", get_vgg19_model),
         # ("ViT", get_vit_model),
         ("AlexNet", get_alexnet_model),
+        ("Gideon_Alexnet", get_gideon_alexnet_model),
         # ("ResNet50", get_resnet_model),
     ]
 

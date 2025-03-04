@@ -7,8 +7,8 @@ from collections import OrderedDict
 def get_resnet_model():
     model = models.resnet50(pretrained=True)
 
-    for parameter in model.parameters():
-        parameter.requires_grad = False
+    # for parameter in model.parameters():
+    #     parameter.requires_grad = False
 
     num_ftrs = model.fc.in_features
     # classifier = nn.Sequential(
@@ -33,5 +33,11 @@ def get_resnet_model():
         )
     )
     model.fc = classifier
+    for name, param in model.named_parameters():
+        # Unfreeze layer4 and the classifier
+        if "layer4" in name or "fc" in name:
+            param.requires_grad = True
+        else:
+            param.requires_grad = False
 
     return model

@@ -13,6 +13,9 @@ from models.resnet_model import get_resnet_model
 from torchvision import transforms
 from preprocessing.clahe import CLAHETransform
 from utils.logger import init_wandb
+from collections import Counter
+import torch
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
 
@@ -150,28 +153,35 @@ def run_training(args):
     train_dataset.dataset.transform = train_transform
     val_dataset.dataset.transform = eval_transform
     test_dataset.dataset.transform = eval_transform
+
+    # Check if we should use weighted sampler
     if wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER:
-        class_counts = torch.bincount(
-            torch.tensor([label for _, label in full_dataset.samples])
-        )
+        # Compute class distribution for the training dataset
+        labels = [
+            train_dataset.dataset[i][1] for i in train_dataset.indices
+        ]  # Extract labels
+        class_counts = Counter(labels)
+        num_samples = max(class_counts.values()) * len(
+            class_counts
+        )  # Total balanced samples
 
-        # **Ensure All Classes Exist (Avoid Zero-Division Errors)**
-        total_samples = sum(class_counts).item()
-        class_weights = total_samples / class_counts  # Inverse frequency weighting
-        sample_weights = torch.tensor(
-            [class_weights[label] for _, label in full_dataset.samples]
-        )
-        train_sampler = torch.utils.data.WeightedRandomSampler(
-            sample_weights[train_dataset.indices],
-            num_samples=len(train_dataset),
-            replacement=True,
-        )
+        # Compute class weights (inverse of frequencies)
+        class_weights = {cls: 1.0 / count for cls, count in class_counts.items()}
+        weights = [class_weights[label] for label in labels]
 
+        # Define sampler for balanced training
+        train_sampler = WeightedRandomSampler(weights, num_samples, replacement=True)
+    else:
+        train_sampler = None
+
+    # Create DataLoaders
     train_loader = DataLoader(
         train_dataset,
         batch_size=wandb.config.BATCH_SIZE,
-        sampler=train_sampler,
-        shuffle=True,
+        sampler=(
+            train_sampler if wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER else None
+        ),  # Apply sampler if enabled
+        shuffle=not wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER,  # Shuffle only if not using sampler
         num_workers=4,
     )
     val_loader = DataLoader(
@@ -186,7 +196,6 @@ def run_training(args):
         shuffle=False,
         num_workers=4,
     )
-
     # Define loss criterion
     criterion = nn.CrossEntropyLoss()
 

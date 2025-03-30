@@ -150,8 +150,7 @@ def run_training(args):
     train_dataset.dataset.transform = train_transform
     val_dataset.dataset.transform = eval_transform
     test_dataset.dataset.transform = eval_transform
-    if wandb.config.USE_UNKNOW_CODE:
-        # **Compute Class Distribution for Weighted Sampling**
+    if wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER:
         class_counts = torch.bincount(
             torch.tensor([label for _, label in full_dataset.samples])
         )
@@ -162,40 +161,31 @@ def run_training(args):
         sample_weights = torch.tensor(
             [class_weights[label] for _, label in full_dataset.samples]
         )
-
-        # **Apply WeightedRandomSampler ONLY to Training Set**
         train_sampler = torch.utils.data.WeightedRandomSampler(
             sample_weights[train_dataset.indices],
             num_samples=len(train_dataset),
             replacement=True,
         )
 
-        # **DataLoaders (Batch Size & Sampler Only for Training)**
-        batch_size = 16
-        train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, sampler=train_sampler
-        )
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    else:
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=wandb.config.BATCH_SIZE,
-            shuffle=True,
-            num_workers=4,
-        )
-        val_loader = DataLoader(
-            val_dataset,
-            batch_size=wandb.config.BATCH_SIZE,
-            shuffle=False,
-            num_workers=4,
-        )
-        test_loader = DataLoader(
-            test_dataset,
-            batch_size=wandb.config.BATCH_SIZE,
-            shuffle=False,
-            num_workers=4,
-        )
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=wandb.config.BATCH_SIZE,
+        sampler=train_sampler,
+        shuffle=True,
+        num_workers=4,
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=wandb.config.BATCH_SIZE,
+        shuffle=False,
+        num_workers=4,
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=wandb.config.BATCH_SIZE,
+        shuffle=False,
+        num_workers=4,
+    )
 
     # Define loss criterion
     criterion = nn.CrossEntropyLoss()

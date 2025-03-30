@@ -29,3 +29,4 @@ USE_OSTEOPENIA = False
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)
 AUGMENTATION_PROB = 0.5
+TRAIN_WEIGHTED_RANDOM_SAMPLER = True

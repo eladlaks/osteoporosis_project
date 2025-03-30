@@ -10,3 +10,5 @@ data/images**/.png
 *.h5
 *.pth
 *.pyc
+*.log
+*.wandb

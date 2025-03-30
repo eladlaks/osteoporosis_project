@@ -2,11 +2,16 @@ import os
 import torch
 
 # Data configuration
-DATA_DIR = os.path.join(os.getcwd(), "data")  # Directory containing images (sub-folders for each class)
+DATA_DIR = os.path.join(
+    os.getcwd(),
+    "data\data\multi-class-knee-osteoporosis-x-ray-dataset\osteoporosis_modified",
+)  # Directory containing images (sub-folders for each class)
 DUPLICATE_THRESHOLD = 0.99  # (Not used directly here but can be adapted for more advanced duplicate checking)
 
 # Preprocessing configuration
-YOLO_WEIGHTS_PATH = os.path.join(os.getcwd(), "pretrained", "yolo_weights.pt")  # Update with your YOLO weights path
+YOLO_WEIGHTS_PATH = os.path.join(
+    os.getcwd(), "pretrained", "yolo_weights.pt"
+)  # Update with your YOLO weights path
 
 # Training configuration
 BATCH_SIZE = 32
@@ -17,7 +22,6 @@ ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = False
 USE_UNKNOW_CODE = False
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
+USE_OSTEOPENIA = False
 # Augmentation configuration (example)
 AUGMENTATION_PROB = 0.5
-

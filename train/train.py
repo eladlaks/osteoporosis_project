@@ -130,6 +130,7 @@ def run_training(args):
             CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
         )  # Apply CLAHE with custom parameters
 
+    all_transformation += prepare_to_network_transforms
     train_transformations += all_transformation + prepare_to_network_transforms
     eval_transform = transforms.Compose(all_transformation)
 

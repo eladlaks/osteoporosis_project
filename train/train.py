@@ -10,8 +10,10 @@ from models.vit_model import get_vit_model
 from models.alexnet_model import get_alexnet_model
 from models.resnet_model import get_resnet_model
 from torchvision import transforms
-
+from preprocessing.clahe import CLAHETransform
 from utils.logger import init_wandb
+
+WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
 
 
 def train_model(
@@ -105,41 +107,42 @@ def train_model(
 
 def run_training(args):
     # Initialize wandb for this run
+
+    wandb.login(key=WANDB_API_KEY)
     init_wandb(project_name="image_classification_project", args=args)
-    # Define transformations (resize, tensor conversion, normalization)
-    if wandb.config.USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
-        train_transform = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.RandomRotation(degrees=10),  # Small random rotation
-                transforms.RandomHorizontalFlip(p=0.5),  # 50% chance to flip
-                transforms.RandomAffine(
-                    degrees=10, translate=(0.1, 0.1)
-                ),  # Small shifts
-                transforms.ColorJitter(brightness=0.2, contrast=0.2),  # Adjust contrast
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485], std=[0.229]
-                ),  # Adjusted for medical images
-            ]
-        )
-    else:
-        train_transform = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-    eval_transform = transforms.Compose(
-        [
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    prepare_to_network_transforms= [
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),
         ]
-    )
+    augmentation_transform = [
+        transforms.RandomRotation(degrees=10),  # Small random rotation
+        transforms.RandomHorizontalFlip(p=0.5),  # 50% chance to flip
+        transforms.RandomAffine(
+            degrees=10, translate=(0.1, 0.1)
+            ),  # Small shifts
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),  # Adjust contrast
+        ]
+    
+    all_transformation = []
+    train_transformations=[]
+    if wandb.config.USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
+        train_transformations +=augmentation_transform
+    if wandb.config.USE_CLAHE
+        all_transformation+=CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),  # Apply CLAHE with custom parameters
+
+
+    train_transformations += all_transformation + prepare_to_network_transforms
+    eval_transform = transforms.Compose(
+            all_transformation
+        )
+
+    train_transform = transforms.Compose(
+            train_transformations
+        )
+ 
     # Load the full dataset
     full_dataset = ImageDataset(wandb.config.DATA_DIR)
     total_size = len(full_dataset)

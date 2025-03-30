@@ -13,3 +13,5 @@ data/*
 *.log
 *.wandb
 *.env
+wandb**.json
+wandb/**/**

@@ -10,4 +10,6 @@ data/*
 *.h5
 *.pth
 *.pyc
-wandb*
+*.log
+*.wandb
+*.env

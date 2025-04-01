@@ -54,7 +54,7 @@ class ImageDataset(Dataset):
         label = self.labels[idx]
         image = Image.open(img_path).convert("RGB")
         # Preprocess image (crop ROI and augment)
-        image = preprocess_image(image)
+        # image = preprocess_image(image)
         if self.transform:
             image = self.transform(image)
         return image, label

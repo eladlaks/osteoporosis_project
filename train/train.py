@@ -10,6 +10,7 @@ from models.vit_model import get_vit_model
 from models.alexnet_model import get_alexnet_model
 from models.gideon_alex_net import get_gideon_alexnet_model
 from models.resnet_model import get_resnet_model
+from models.dino_model import get_dinov2_model
 from torchvision import transforms
 from preprocessing.clahe import CLAHETransform
 from utils.logger import init_wandb
@@ -200,26 +201,32 @@ def run_training(args):
     criterion = nn.CrossEntropyLoss()
 
     # List of models to train
-    models_to_train = [
-        # ("VGG19", get_vgg19_model),
-        # ("ViT", get_vit_model),
-        # ("AlexNet", get_alexnet_model),
-        # ("Gideon_Alexnet", get_gideon_alexnet_model),
-        ("ResNet50", get_resnet_model),
-    ]
-
-    for model_name, model_func in models_to_train:
-        print(f"Training {model_name} model...")
-        model = model_func()
-        optimizer = optim.Adam(model.parameters(), lr=wandb.config.LEARNING_RATE)
-        train_model(
-            model,
-            model_name,
-            train_loader,
-            val_loader,
-            test_loader,
-            criterion,
-            optimizer,
-        )
+    model_name = wandb.config.MODEL_NAME
+    if model_name == "VGG19":
+        model_func = get_vgg19_model
+    elif model_name == "ViT":
+        model_func = get_vit_model
+    elif model_name == "AlexNet":
+        model_func = get_alexnet_model
+    elif model_name == "Gideon_Alexnet":
+        model_func = get_gideon_alexnet_model
+    elif model_name == "ResNet50":
+        model_func = get_resnet_model
+    elif model_name == "DINOv2":
+        model_func = get_dinov2_model
+    else:
+        raise ValueError(f"Unknown model name: {model_name}")
+    print(f"Training {model_name} model...")
+    model = model_func()
+    optimizer = optim.Adam(model.parameters(), lr=wandb.config.LEARNING_RATE)
+    train_model(
+        model,
+        model_name,
+        train_loader,
+        val_loader,
+        test_loader,
+        criterion,
+        optimizer,
+    )
 
     wandb.finish()

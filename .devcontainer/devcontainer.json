@@ -8,7 +8,8 @@
                 "streetsidesoftware.code-spell-checker",
                 "ms-python.python",
                 "ms-python.vscode-pylance",
-                "ms-toolsai.jupyter"
+                "ms-toolsai.jupyter",
+                "saoudrizwan.claude-dev"
 
             ]
         }

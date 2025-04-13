@@ -22,6 +22,9 @@ def parse_args():
         "--USE_CLAHE", type=int, default=config.USE_CLAHE, help="USE CLAHE"
     )
     parser.add_argument(
+        "--MODEL_NAME", type=str, default=config.MODEL_NAME, help="MODEL NAME"
+    )
+    parser.add_argument(
         "--USE_OSTEOPENIA", type=bool, default=config.USE_OSTEOPENIA, help="USE OSTEOPENIA"
     )
     parser.add_argument(

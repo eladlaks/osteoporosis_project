@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 import hashlib
 import config
 import wandb
-from preprocessing.preprocess import preprocess_image
+# from preprocessing.preprocess import preprocess_image
 
 
 class ImageDataset(Dataset):

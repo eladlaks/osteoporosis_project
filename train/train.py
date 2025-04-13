@@ -182,19 +182,19 @@ def run_training(args):
             train_sampler if wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER else None
         ),  # Apply sampler if enabled
         shuffle=not wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER,  # Shuffle only if not using sampler
-        num_workers=4,
+        num_workers=wandb.config.NUM_WORKERS,
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=wandb.config.BATCH_SIZE,
         shuffle=False,
-        num_workers=4,
+        num_workers=wandb.config.NUM_WORKERS,
     )
     test_loader = DataLoader(
         test_dataset,
         batch_size=wandb.config.BATCH_SIZE,
         shuffle=False,
-        num_workers=4,
+        num_workers=wandb.config.NUM_WORKERS,
     )
     # Define loss criterion
     criterion = nn.CrossEntropyLoss()

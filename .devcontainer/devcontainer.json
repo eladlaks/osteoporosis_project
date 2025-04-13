@@ -1,0 +1,25 @@
+{
+    "image": "osteo:01",
+    "workspaceFolder": "/workspace/osteo",
+    "customizations": {
+        "vscode": {
+            // Add the IDs of extensions you want installed when the container is created.
+            "extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-toolsai.jupyter"
+
+            ]
+        }
+    },
+    "runArgs": [
+        "--gpus=all",
+        "-it",
+        "--rm",
+        "--privileged",
+        "--shm-size=32000M",
+        "-v",
+        "/home/elad/dockers/osteoporosis_project/:/workspace/osteo"
+    ]
+}

@@ -18,6 +18,18 @@ def parse_args():
     parser.add_argument(
         "--NUM_EPOCHS", type=int, default=config.NUM_EPOCHS, help="NUMBER OF EPOCHS"
     )
+    parser.add_argument(
+        "--USE_CLAHE", type=int, default=config.USE_CLAHE, help="USE CLAHE"
+    )
+    parser.add_argument(
+        "--USE_OSTEOPENIA", type=bool, default=config.USE_OSTEOPENIA, help="USE OSTEOPENIA"
+    )
+    parser.add_argument(
+        "--TRAIN_WEIGHTED_RANDOM_SAMPLER", type=int, default=config.TRAIN_WEIGHTED_RANDOM_SAMPLER, help="TRAIN_WEIGHTED_RANDOM_SAMPLER"
+    )
+    parser.add_argument(
+        "--NUM_WORKERS", type=int, default=config.NUM_WORKERS, help="NUM_WORKERS"
+    )
     return parser.parse_args()
 
 

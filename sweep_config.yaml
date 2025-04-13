@@ -1,11 +1,15 @@
 method: grid
 metric:
-  name: val_accuracy
+  name: val_acc
   goal: maximize
 parameters:
   LEARNING_RATE:
-    values: [0.001, 0.0005, 0.0001]
+    values: [0.00001, 0.000001, 0.000005]
   BATCH_SIZE:
-    values: [16, 32]
-  NUM_EPOCHS:
+    values: [32]
+  NUM_WORKERS:
     value: 1
+  NUM_EPOCHS:
+    value: 30
+  USE_OSTEOPENIA:
+    value: True

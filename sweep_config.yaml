@@ -14,4 +14,4 @@ parameters:
   USE_OSTEOPENIA:
     values: [True]
   MODEL_NAME:
-    values: ["DINOv2", "ResNet50"]
+    values: ["ViT"]

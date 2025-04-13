@@ -1,6 +1,7 @@
 import argparse
 import wandb
 import config
+from models.dino_model import get_dinov2_model
 from train.train import run_training
 
 

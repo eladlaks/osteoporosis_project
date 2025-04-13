@@ -2,6 +2,8 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
 from torch.utils.data import DataLoader
 import wandb
 from dataset_handler.dataset import ImageDataset
@@ -22,7 +24,7 @@ WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
 
 
 def train_model(
-    model, model_name, train_loader, val_loader, test_loader, criterion, optimizer
+    model, model_name, train_loader, val_loader, test_loader, criterion, optimizer, scheduler=None
 ):
     model.to(wandb.config.DEVICE)
     for epoch in range(wandb.config.NUM_EPOCHS):
@@ -73,6 +75,10 @@ def train_model(
                 "epoch": epoch + 1,
             }
         )
+        # Step the scheduler with validation loss
+        if scheduler:
+            scheduler.step(val_loss)
+
 
     # Save model weights after training
     model_save_path = os.path.join("saved_models", f"{model_name}.pth")
@@ -113,8 +119,9 @@ def run_training(args):
 
     wandb.login(key=WANDB_API_KEY)
     init_wandb(project_name="image_classification_project", args=args)
+    size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (224, 224)
     prepare_to_network_transforms = [
-        transforms.Resize((224, 224)),
+        transforms.Resize(size),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
@@ -219,6 +226,7 @@ def run_training(args):
     print(f"Training {model_name} model...")
     model = model_func()
     optimizer = optim.Adam(model.parameters(), lr=wandb.config.LEARNING_RATE)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=3, factor=0.5)
     train_model(
         model,
         model_name,
@@ -227,6 +235,7 @@ def run_training(args):
         test_loader,
         criterion,
         optimizer,
+        scheduler,
     )
 
     wandb.finish()

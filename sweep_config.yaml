@@ -10,8 +10,10 @@ parameters:
   NUM_WORKERS:
     value: 1
   NUM_EPOCHS:
-    value: 30
+    value: 20
   USE_OSTEOPENIA:
     values: [True]
   MODEL_NAME:
     values: ["ViT"]
+  USE_CLAHE:
+    values: [True,False]

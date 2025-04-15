@@ -44,7 +44,7 @@ def train_model(
         print(
             f"[{model_name}] Epoch {epoch+1}/{wandb.config.NUM_EPOCHS}, Training Loss: {epoch_loss:.4f}"
         )
-        wandb.log({f"{model_name}_train_loss": epoch_loss, "epoch": epoch + 1})
+        wandb.log({f"train_loss": epoch_loss, "epoch": epoch + 1})
 
         # Validation step
         model.eval()
@@ -70,8 +70,8 @@ def train_model(
         )
         wandb.log(
             {
-                f"{model_name}_val_loss": avg_val_loss,
-                f"{model_name}_val_acc": val_accuracy,
+                f"val_loss": avg_val_loss,
+                f"val_acc": val_accuracy,
                 "epoch": epoch + 1,
             }
         )
@@ -108,8 +108,8 @@ def train_model(
     )
     wandb.log(
         {
-            f"{model_name}_test_loss": avg_test_loss,
-            f"{model_name}_test_acc": test_accuracy,
+            f"test_loss": avg_test_loss,
+            f"test_acc": test_accuracy,
         }
     )
 

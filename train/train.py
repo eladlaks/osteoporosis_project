@@ -20,6 +20,12 @@ from collections import Counter
 import torch
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
+from sklearn.metrics import confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
 
 
@@ -86,11 +92,14 @@ def train_model(
     torch.save(model.state_dict(), model_save_path)
     print(f"Saved {model_name} model to {model_save_path}")
 
-    # Optionally, run a final evaluation on the test set
+    # Final evaluation on test set
     model.eval()
     test_loss = 0.0
     correct = 0
     total = 0
+    all_labels = []
+    all_preds = []
+
     with torch.no_grad():
         for images, labels in test_loader:
             images = images.to(wandb.config.DEVICE)
@@ -98,20 +107,37 @@ def train_model(
             outputs = model(images)
             loss = criterion(outputs, labels)
             test_loss += loss.item() * images.size(0)
+
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+            all_labels.extend(labels.cpu().numpy())
+            all_preds.extend(predicted.cpu().numpy())
+
     avg_test_loss = test_loss / len(test_loader.dataset)
     test_accuracy = correct / total
-    print(
-        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}"
-    )
-    wandb.log(
-        {
-            f"test_loss": avg_test_loss,
-            f"test_acc": test_accuracy,
-        }
-    )
+
+    print(f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")
+    wandb.log({
+        f"test_loss": avg_test_loss,
+        f"test_acc": test_accuracy,
+    })
+
+    # Confusion Matrix
+    cm = confusion_matrix(all_labels, all_preds)
+    class_names = ["Normal", "Osteopenia", "Osteoporosis"]
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.title(f"Confusion Matrix - {model_name}")
+    wandb.log({f"{model_name}_confusion_matrix": wandb.Image(plt)})
+    plt.close()
+
+    # Classification Report
+    report = classification_report(all_labels, all_preds, output_dict=True, zero_division=0)
+    wandb.log({f"{model_name}_classification_report": report})
 
 
 def run_training(args):

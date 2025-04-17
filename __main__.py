@@ -34,6 +34,9 @@ def parse_args():
     parser.add_argument(
         "--NUM_WORKERS", type=int, default=config.NUM_WORKERS, help="NUM_WORKERS"
     )
+    parser.add_argument(
+        "--DATA_DIR", type=str, default=config.DATA_DIR, help="Path to dataset directory",
+    )
     return parser.parse_args()
 
 

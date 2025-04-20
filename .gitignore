@@ -12,6 +12,5 @@ data/*
 *.pyc
 *.log
 *.wandb
-*.env
 wandb**.json
 wandb/**/**

@@ -20,7 +20,7 @@ NUM_CLASSES = 3
 ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = True
 USE_CLAHE = False
-MODEL_NAME = "resnet50"  
+MODEL_NAME = "ResNet50"  
 USE_OSTEOPENIA = True
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)

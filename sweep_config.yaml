@@ -17,3 +17,5 @@ parameters:
     values: ["ViT"]
   USE_CLAHE:
     values: [True,False]
+  DATA_DIR:
+    values: ["data/cropped_data", "data/clahe_data", "data/augmented_data"]

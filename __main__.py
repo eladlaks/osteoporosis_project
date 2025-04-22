@@ -26,16 +26,43 @@ def parse_args():
         "--MODEL_NAME", type=str, default=config.MODEL_NAME, help="MODEL NAME"
     )
     parser.add_argument(
-        "--USE_OSTEOPENIA", type=bool, default=config.USE_OSTEOPENIA, help="USE OSTEOPENIA"
+        "--USE_OSTEOPENIA",
+        type=bool,
+        default=config.USE_OSTEOPENIA,
+        help="USE OSTEOPENIA",
     )
     parser.add_argument(
-        "--TRAIN_WEIGHTED_RANDOM_SAMPLER", type=int, default=config.TRAIN_WEIGHTED_RANDOM_SAMPLER, help="TRAIN_WEIGHTED_RANDOM_SAMPLER"
+        "--USE_METABOLIC_FOR_TEST",
+        type=bool,
+        default=config.USE_METABOLIC_FOR_TEST,
+        help="USE_METABOLIC_FOR_TEST",
+    )
+    parser.add_argument(
+        "--USE_SCHEDULER",
+        type=bool,
+        default=config.USE_SCHEDULER,
+        help="USE_SCHEDULER",
+    )
+    parser.add_argument(
+        "--TRAIN_WEIGHTED_RANDOM_SAMPLER",
+        type=int,
+        default=config.TRAIN_WEIGHTED_RANDOM_SAMPLER,
+        help="TRAIN_WEIGHTED_RANDOM_SAMPLER",
     )
     parser.add_argument(
         "--NUM_WORKERS", type=int, default=config.NUM_WORKERS, help="NUM_WORKERS"
     )
     parser.add_argument(
-        "--DATA_DIR", type=str, default=config.DATA_DIR, help="Path to dataset directory"
+        "--DATA_DIR",
+        type=str,
+        default=config.DATA_DIR,
+        help="Path to dataset directory",
+    )
+    parser.add_argument(
+        "--TEST_DATA_DIR",
+        type=str,
+        default=config.TEST_DATA_DIR,
+        help="Path to test_data directory",
     )
     return parser.parse_args()
 

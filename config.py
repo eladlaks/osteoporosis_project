@@ -2,9 +2,8 @@ import os
 import torch
 
 # Data configuration
-DATA_DIR = os.path.join(
-    os.getcwd(), "data//cropped_data"
-)  # Directory containing images (sub-folders for each class)
+DATA_DIR = os.path.join(os.getcwd(), "data//cropped_data")
+TEST_DATA_DIR = os.path.join(os.getcwd(), "data//test_cropped_data")
 DUPLICATE_THRESHOLD = 0.99  # (Not used directly here but can be adapted for more advanced duplicate checking)
 
 YOLO_WEIGHTS_PATH = os.path.join(
@@ -20,9 +19,11 @@ NUM_CLASSES = 3
 ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = True
 USE_CLAHE = False
-MODEL_NAME = "ResNet50"  
+MODEL_NAME = "ResNet50"
 USE_OSTEOPENIA = True
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)
 TRAIN_WEIGHTED_RANDOM_SAMPLER = True
 NUM_WORKERS = 4
+USE_METABOLIC_FOR_TEST = True
+USE_SCHEDULER = False

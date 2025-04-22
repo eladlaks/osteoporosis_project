@@ -18,4 +18,6 @@ parameters:
   USE_CLAHE:
     values: [True,False]
   DATA_DIR:
-    values: ["data/cropped_data", "data/clahe_data", "data/augmented_data"]
+    values: ["data/cropped_data"]
+  USE_METABOLIC_FOR_TEST:
+    values: [True,False]

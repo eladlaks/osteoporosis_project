@@ -30,7 +30,14 @@ WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
 
 
 def train_model(
-    model, model_name, train_loader, val_loader, test_loader, criterion, optimizer, scheduler=None
+    model,
+    model_name,
+    train_loader,
+    val_loader,
+    test_loader,
+    criterion,
+    optimizer,
+    scheduler=None,
 ):
     model.to(wandb.config.DEVICE)
     for epoch in range(wandb.config.NUM_EPOCHS):
@@ -85,7 +92,6 @@ def train_model(
         if scheduler:
             scheduler.step(val_loss)
 
-
     # Save model weights after training
     model_save_path = os.path.join("saved_models", f"{model_name}.pth")
     os.makedirs("saved_models", exist_ok=True)
@@ -117,18 +123,29 @@ def train_model(
     avg_test_loss = test_loss / len(test_loader.dataset)
     test_accuracy = correct / total
 
-    print(f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")
-    wandb.log({
-        f"test_loss": avg_test_loss,
-        f"test_acc": test_accuracy,
-    })
+    print(
+        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}"
+    )
+    wandb.log(
+        {
+            f"test_loss": avg_test_loss,
+            f"test_acc": test_accuracy,
+        }
+    )
 
     # Confusion Matrix
     cm = confusion_matrix(all_labels, all_preds)
     class_names = ["Normal", "Osteopenia", "Osteoporosis"]
 
     plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=class_names, yticklabels=class_names)
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=class_names,
+        yticklabels=class_names,
+    )
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title(f"Confusion Matrix - {model_name}")
@@ -136,7 +153,9 @@ def train_model(
     plt.close()
 
     # Classification Report
-    report = classification_report(all_labels, all_preds, output_dict=True, zero_division=0)
+    report = classification_report(
+        all_labels, all_preds, output_dict=True, zero_division=0
+    )
     wandb.log({f"{model_name}_classification_report": report})
 
 
@@ -168,7 +187,7 @@ def run_training(args):
         )  # Apply CLAHE with custom parameters
 
     all_transformation += prepare_to_network_transforms
-    train_transformations += all_transformation + prepare_to_network_transforms
+    train_transformations += all_transformation
     eval_transform = transforms.Compose(all_transformation)
 
     train_transform = transforms.Compose(train_transformations)
@@ -176,17 +195,28 @@ def run_training(args):
     # Load the full dataset
     full_dataset = ImageDataset(wandb.config.DATA_DIR)
     total_size = len(full_dataset)
-    train_size = int(0.7 * total_size)
-    val_size = int(0.15 * total_size)
-    test_size = total_size - train_size - val_size
+    if wandb.config.USE_METABOLIC_FOR_TEST:
+        train_size = int(0.8 * total_size)
+        val_size = total_size - train_size
+        train_dataset, val_dataset = torch.utils.data.random_split(
+            full_dataset, [train_size, val_size]
+        )
+        test_dataset = ImageDataset(wandb.config.TEST_DATA_DIR)
+        test_dataset.transform = eval_transform
 
-    # Randomly split the dataset
-    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
-        full_dataset, [train_size, val_size, test_size]
-    )
+    else:
+        train_size = int(0.7 * total_size)
+        val_size = int(0.15 * total_size)
+        test_size = total_size - train_size - val_size
+
+        # Randomly split the dataset
+        train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
+            full_dataset, [train_size, val_size, test_size]
+        )
+        test_dataset.dataset.transform = eval_transform
+
     train_dataset.dataset.transform = train_transform
     val_dataset.dataset.transform = eval_transform
-    test_dataset.dataset.transform = eval_transform
 
     # Check if we should use weighted sampler
     if wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER:
@@ -252,7 +282,10 @@ def run_training(args):
     print(f"Training {model_name} model...")
     model = model_func()
     optimizer = optim.Adam(model.parameters(), lr=wandb.config.LEARNING_RATE)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=3, factor=0.5)
+    if wandb.config.USE_SCHEDULER:
+        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=3, factor=0.5)
+    else:
+        scheduler = None
     train_model(
         model,
         model_name,

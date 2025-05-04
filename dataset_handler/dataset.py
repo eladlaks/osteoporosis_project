@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 import hashlib
 import config
 import wandb
+
 # from preprocessing.preprocess import preprocess_image
 
 
@@ -30,7 +31,8 @@ class ImageDataset(Dataset):
             if os.path.isdir(os.path.join(self.root_dir, d))
         ]
         class_folders.sort()  # ensure consistent ordering
-        for label, class_name in enumerate(class_folders):
+        label = 0
+        for class_name in class_folders:
             if wandb.config.USE_OSTEOPENIA or class_name != "Osteopenia":
                 folder_path = os.path.join(self.root_dir, class_name)
                 for img_path in glob.glob(os.path.join(folder_path, "*.*")):
@@ -45,6 +47,7 @@ class ImageDataset(Dataset):
                         self.labels.append(label)
                     except Exception as e:
                         print(f"Error processing {img_path}: {e}")
+                label += 1
 
     def __len__(self):
         return len(self.image_paths)

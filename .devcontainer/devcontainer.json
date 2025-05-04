@@ -1,6 +1,6 @@
 {
     "image": "osteo:01",
-    "workspaceFolder": "/workspace/osteo",
+    "workspaceFolder": "/workspace/osteoporosis_project",
     "customizations": {
         "vscode": {
             // Add the IDs of extensions you want installed when the container is created.
@@ -21,6 +21,6 @@
         "--privileged",
         "--shm-size=32000M",
         "-v",
-        "/home/elad/dockers/osteoporosis_project/:/workspace/osteo"
+        "/home/elad/dockers/osteoporosis_project/:/workspace/osteoporosis_project"
     ]
 }

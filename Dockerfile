@@ -31,7 +31,7 @@ ENV PATH="/workspace/miniconda3/bin:${PATH}"
 # initialize conda
 RUN conda init bash
 
-WORKDIR /workspace/osteo
+WORKDIR /workspace/osteoporosis_project
 
 RUN conda install pytorch==2.4.0 torchvision==0.19.0 pytorch-cuda=11.8 -c pytorch -c nvidia --y
 

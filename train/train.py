@@ -43,7 +43,7 @@ def train_model(
     best_val_loss = float("inf")  # Initialize best validation loss
     best_model_path = os.path.join("saved_models", f"{model_name}_best.pth")
     os.makedirs("saved_models", exist_ok=True)
-
+    best_model = model
     for epoch in range(wandb.config.NUM_EPOCHS):
         model.train()
         running_loss = 0.0
@@ -96,8 +96,8 @@ def train_model(
         # Save the best model based on validation loss
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), best_model_path)
-            print(f"Best model saved with validation loss: {best_val_loss:.4f}")
+            best_model = model
+            print(f"Best model with validation loss: {best_val_loss:.4f}")
 
         # Step the scheduler with validation loss
         if scheduler:
@@ -106,7 +106,10 @@ def train_model(
     # Save the last model weights after training
     model_save_path = os.path.join("saved_models", f"{model_name}.pth")
     torch.save(model.state_dict(), model_save_path)
+    torch.save(best_model.state_dict(), best_model_path)
+
     print(f"Saved last {model_name} model to {model_save_path}")
+    print(f"Best model saved with validation loss: {best_val_loss:.4f}")
 
     # Final evaluation on test set
     model.load_state_dict(torch.load(best_model_path))

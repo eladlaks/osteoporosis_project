@@ -2,7 +2,7 @@ import wandb
 import config
 
 
-def init_wandb(project_name="image_classification_project", args={}):
+def init_wandb(project_name="osteoporosis_project", args={}):
     # Convert config.py module attributes to dictionary
     config_dict = {k: v for k, v in vars(config).items() if k.isupper()}
 
@@ -13,7 +13,7 @@ def init_wandb(project_name="image_classification_project", args={}):
     config_dict.update(arg_dict)
 
     # Initialize wandb with the full configuration
-    wandb.init(project="image_classification_project", reinit=True, config=config_dict)
+    wandb.init(project="osteoporosis_project", reinit=True, config=config_dict)
 
     # Print out the final configuration to verify
     print("Wandb configuration:")

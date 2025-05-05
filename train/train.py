@@ -108,28 +108,29 @@ def train_model(
     filenames = []
 
     with torch.no_grad():
-        for i, (images, labels) in enumerate(test_loader):
-            images = images.to(wandb.config.DEVICE)
-            labels = labels.to(wandb.config.DEVICE)
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            test_loss += loss.item() * images.size(0)
+        for batch_images, batch_labels in test_loader:
+            batch_images = batch_images.to(wandb.config.DEVICE)
+            batch_labels = batch_labels.to(wandb.config.DEVICE)
+            outputs = model(batch_images)
+            loss = criterion(outputs, batch_labels)
+            test_loss += loss.item() * batch_images.size(0)
 
             _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            all_labels.extend(labels.cpu().numpy())
+            total += batch_labels.size(0)
+            correct += (predicted == batch_labels).sum().item()
+            all_labels.extend(batch_labels.cpu().numpy())
             all_preds.extend(predicted.cpu().numpy())
 
-            # NEW: Extract sample filename
+            # 🔄 Robust filename extraction per batch
             dataset = test_loader.dataset
-            if isinstance(dataset, torch.utils.data.Subset):
-                idx = dataset.indices[i]
-                filename = os.path.basename(dataset.dataset.image_paths[idx])
-            else:
-                filename = os.path.basename(dataset.image_paths[i])
-            filenames.append(os.path.splitext(filename)[0])
-
+            for idx_in_batch in range(batch_images.size(0)):
+                if isinstance(dataset, torch.utils.data.Subset):
+                    real_idx = dataset.indices[len(filenames)]
+                    image_path = dataset.dataset.image_paths[real_idx]
+                else:
+                    image_path = dataset.image_paths[len(filenames)]
+                filename = os.path.splitext(os.path.basename(image_path))[0]
+                filenames.append(filename)
     avg_test_loss = test_loss / len(test_loader.dataset)
     test_accuracy = correct / total
     print(f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")

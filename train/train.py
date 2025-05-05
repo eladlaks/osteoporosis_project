@@ -19,8 +19,14 @@ from utils.logger import init_wandb
 from collections import Counter
 import torch
 from torch.utils.data import DataLoader, WeightedRandomSampler
-
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import (
+    confusion_matrix,
+    classification_report,
+    roc_auc_score,
+    precision_score,
+    recall_score,
+    f1_score,
+)
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
@@ -119,6 +125,7 @@ def train_model(
     total = 0
     all_labels = []
     all_preds = []
+    all_probs = []
 
     with torch.no_grad():
         for images, labels in test_loader:
@@ -128,28 +135,64 @@ def train_model(
             loss = criterion(outputs, labels)
             test_loss += loss.item() * images.size(0)
 
-            _, predicted = torch.max(outputs.data, 1)
+            probs = torch.softmax(outputs, dim=1)
+            _, predicted = torch.max(probs.data, 1)
+
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             all_labels.extend(labels.cpu().numpy())
             all_preds.extend(predicted.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
 
     avg_test_loss = test_loss / len(test_loader.dataset)
     test_accuracy = correct / total
 
+    # Convert to numpy arrays
+    all_labels_np = np.array(all_labels)
+    all_preds_np = np.array(all_preds)
+    all_probs_np = np.array(all_probs)
+
+    # Compute evaluation metrics
+    test_f1 = f1_score(all_labels_np, all_preds_np, average="macro")
+    test_precision = precision_score(all_labels_np, all_preds_np, average="macro")
+    test_recall = recall_score(all_labels_np, all_preds_np, average="macro")
+
+    try:
+        all_labels_one_hot = np.eye(wandb.config.NUM_CLASSES)[all_labels_np]
+        test_auc = roc_auc_score(
+            all_labels_one_hot, all_probs_np, average="macro", multi_class="ovr"
+        )
+    except Exception as e:
+        print(f"AUC computation failed: {e}")
+        test_auc = None
+
+    if test_auc is not None:
+        auc_str = f"{test_auc:.4f}"
+    else:
+        auc_str = "N/A"
+
     print(
-        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}"
+        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}, "
+        f"F1: {test_f1:.4f}, Precision: {test_precision:.4f}, Recall: {test_recall:.4f}, AUC: {auc_str}"
     )
+
     wandb.log(
         {
             f"test_loss": avg_test_loss,
             f"test_acc": test_accuracy,
+            f"test_f1": test_f1,
+            f"test_precision": test_precision,
+            f"test_recall": test_recall,
+            f"test_auc": test_auc if test_auc is not None else 0.0,
         }
     )
-
     # Confusion Matrix
-    cm = confusion_matrix(all_labels, all_preds)
-    class_names = ["Normal", "Osteopenia", "Osteoporosis"]
+    if wandb.config.NUM_CLASSES == 2:
+        cm = confusion_matrix(all_labels_np, all_preds_np)
+        class_names = ["Normal", "Osteoporosis"]
+    else:
+        cm = confusion_matrix(all_labels_np, all_preds_np)
+        class_names = ["Normal", "Osteopenia", "Osteoporosis"]
 
     plt.figure(figsize=(8, 6))
     sns.heatmap(
@@ -166,11 +209,17 @@ def train_model(
     wandb.log({f"{model_name}_confusion_matrix": wandb.Image(plt)})
     plt.close()
 
-    # Classification Report
+    # Classification Report + Per-Class Metrics
     report = classification_report(
-        all_labels, all_preds, output_dict=True, zero_division=0
+        all_labels_np, all_preds_np, output_dict=True, zero_division=0
     )
     wandb.log({f"{model_name}_classification_report": report})
+
+    # Log per-class metrics (optional)
+    for label, metrics in report.items():
+        if isinstance(metrics, dict):
+            for metric_name, value in metrics.items():
+                wandb.log({f"{model_name}_{label}_{metric_name}": value})
 
 
 def run_training(args):
@@ -208,6 +257,7 @@ def run_training(args):
 
     # Load the full dataset
     full_dataset = ImageDataset(wandb.config.DATA_DIR)
+    wandb.config.NUM_CLASSES = len(set(full_dataset.labels))
     total_size = len(full_dataset)
     if wandb.config.USE_METABOLIC_FOR_TEST:
         train_size = int(0.8 * total_size)
@@ -295,9 +345,13 @@ def run_training(args):
         raise ValueError(f"Unknown model name: {model_name}")
     print(f"Training {model_name} model...")
     model = model_func()
-    optimizer = optim.Adam(model.parameters(), lr=wandb.config.LEARNING_RATE)
+    optimizer = optim.Adam(
+        model.parameters(), lr=wandb.config.LEARNING_RATE, weight_decay=1e-5
+    )
     if wandb.config.USE_SCHEDULER:
-        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=3, factor=0.5)
+        scheduler = ReduceLROnPlateau(
+            optimizer, mode="min", patience=4, factor=0.5, verbose=True
+        )
     else:
         scheduler = None
     train_model(

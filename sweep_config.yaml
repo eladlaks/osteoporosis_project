@@ -6,18 +6,20 @@ parameters:
   LEARNING_RATE:
     values: [0.000001]
   BATCH_SIZE:
-    values: [32]
+    values: [64]
   NUM_WORKERS:
     value: 1
   NUM_EPOCHS:
-    value: 20
+    value: 1
   USE_OSTEOPENIA:
     values: [True]
   MODEL_NAME:
     values: ["ViT"]
   USE_CLAHE:
-    values: [True,False]
+    values: [True]
   DATA_DIR:
     values: ["data/cropped_data"]
   USE_METABOLIC_FOR_TEST:
-    values: [True,False]
+    values: [True]
+  MERGE_RESULTS_TO_METABOLIC_DF:
+    values: [True]  

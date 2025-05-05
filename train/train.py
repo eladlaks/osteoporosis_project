@@ -3,8 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 import wandb
 from dataset_handler.dataset import ImageDataset
 from models.vgg19_model import get_vgg19_model
@@ -17,17 +16,13 @@ from torchvision import transforms
 from preprocessing.clahe import CLAHETransform
 from utils.logger import init_wandb
 from collections import Counter
-import torch
-from torch.utils.data import DataLoader, WeightedRandomSampler
-
 from sklearn.metrics import confusion_matrix, classification_report
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
-
 
 def train_model(
     model,
@@ -44,6 +39,8 @@ def train_model(
     best_model_path = os.path.join("saved_models", f"{model_name}_best.pth")
     os.makedirs("saved_models", exist_ok=True)
     best_model = model
+
+    # Training loop
     for epoch in range(wandb.config.NUM_EPOCHS):
         model.train()
         running_loss = 0.0
@@ -58,9 +55,7 @@ def train_model(
             running_loss += loss.item() * images.size(0)
 
         epoch_loss = running_loss / len(train_loader.dataset)
-        print(
-            f"[{model_name}] Epoch {epoch+1}/{wandb.config.NUM_EPOCHS}, Training Loss: {epoch_loss:.4f}"
-        )
+        print(f"[{model_name}] Epoch {epoch+1}/{wandb.config.NUM_EPOCHS}, Training Loss: {epoch_loss:.4f}")
         wandb.log({f"train_loss": epoch_loss, "epoch": epoch + 1})
 
         # Validation step
@@ -82,16 +77,8 @@ def train_model(
 
         avg_val_loss = val_loss / len(val_loader.dataset)
         val_accuracy = correct / total
-        print(
-            f"[{model_name}] Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}"
-        )
-        wandb.log(
-            {
-                f"val_loss": avg_val_loss,
-                f"val_acc": val_accuracy,
-                "epoch": epoch + 1,
-            }
-        )
+        print(f"[{model_name}] Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}")
+        wandb.log({"val_loss": avg_val_loss, "val_acc": val_accuracy, "epoch": epoch + 1})
 
         # Save the best model based on validation loss
         if avg_val_loss < best_val_loss:
@@ -107,7 +94,6 @@ def train_model(
     model_save_path = os.path.join("saved_models", f"{model_name}.pth")
     torch.save(model.state_dict(), model_save_path)
     torch.save(best_model.state_dict(), best_model_path)
-
     print(f"Saved last {model_name} model to {model_save_path}")
     print(f"Best model saved with validation loss: {best_val_loss:.4f}")
 
@@ -119,9 +105,10 @@ def train_model(
     total = 0
     all_labels = []
     all_preds = []
+    filenames = []
 
     with torch.no_grad():
-        for images, labels in test_loader:
+        for i, (images, labels) in enumerate(test_loader):
             images = images.to(wandb.config.DEVICE)
             labels = labels.to(wandb.config.DEVICE)
             outputs = model(images)
@@ -134,32 +121,25 @@ def train_model(
             all_labels.extend(labels.cpu().numpy())
             all_preds.extend(predicted.cpu().numpy())
 
+            # NEW: Extract sample filename
+            dataset = test_loader.dataset
+            if isinstance(dataset, torch.utils.data.Subset):
+                idx = dataset.indices[i]
+                filename = os.path.basename(dataset.dataset.image_paths[idx])
+            else:
+                filename = os.path.basename(dataset.image_paths[i])
+            filenames.append(os.path.splitext(filename)[0])
+
     avg_test_loss = test_loss / len(test_loader.dataset)
     test_accuracy = correct / total
-
-    print(
-        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}"
-    )
-    wandb.log(
-        {
-            f"test_loss": avg_test_loss,
-            f"test_acc": test_accuracy,
-        }
-    )
+    print(f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")
+    wandb.log({"test_loss": avg_test_loss, "test_acc": test_accuracy})
 
     # Confusion Matrix
     cm = confusion_matrix(all_labels, all_preds)
     class_names = ["Normal", "Osteopenia", "Osteoporosis"]
-
     plt.figure(figsize=(8, 6))
-    sns.heatmap(
-        cm,
-        annot=True,
-        fmt="d",
-        cmap="Blues",
-        xticklabels=class_names,
-        yticklabels=class_names,
-    )
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=class_names, yticklabels=class_names)
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title(f"Confusion Matrix - {model_name}")
@@ -167,10 +147,47 @@ def train_model(
     plt.close()
 
     # Classification Report
-    report = classification_report(
-        all_labels, all_preds, output_dict=True, zero_division=0
-    )
+    report = classification_report(all_labels, all_preds, output_dict=True, zero_division=0)
     wandb.log({f"{model_name}_classification_report": report})
+
+    # Optional merging with metabolic Excel
+    if hasattr(wandb.config, "MERGE_RESULTS_TO_METABOLIC_DF") and wandb.config.MERGE_RESULTS_TO_METABOLIC_DF:
+        path_to_excel = "/Users/gideonbonwitt/Documents/Msc/osteoporosis_project/data/test_cropped_data/patient_details.xlsx"
+        metabolic_df = pd.read_excel(path_to_excel)
+        prediction_map = {f: p for f, p in zip(filenames, all_preds)}
+        class_names = ["normal", "osteopenia", "osteoporosis"]
+
+        metabolic_df["left knee predict"] = ""
+        metabolic_df["right knee predict"] = ""
+        metabolic_df["same prediction on both knees?"] = ""
+        metabolic_df["same prediction as diagnosis?"] = ""
+
+        for idx, row in metabolic_df.iterrows():
+            pid = row["Patient Id"]
+            left_key = f"{pid}_left"
+            right_key = f"{pid}_right"
+
+            left_pred = class_names[prediction_map[left_key]] if left_key in prediction_map else ""
+            right_pred = class_names[prediction_map[right_key]] if right_key in prediction_map else ""
+
+            metabolic_df.at[idx, "left knee predict"] = left_pred
+            metabolic_df.at[idx, "right knee predict"] = right_pred
+
+            if left_pred and right_pred:
+                same_both = left_pred == right_pred
+            else:
+                same_both = True
+
+            diagnosis = str(row["Diagnosis"]).strip().lower()
+            match_count = sum([left_pred == diagnosis, right_pred == diagnosis])
+            match_status = "yes" if match_count == 2 else "yes but" if match_count == 1 else "no"
+
+            metabolic_df.at[idx, "same prediction on both knees?"] = same_both
+            metabolic_df.at[idx, "same prediction as diagnosis?"] = match_status
+
+        output_csv_path = f"metabolic_predictions_{model_name}.csv"
+        metabolic_df.to_csv(output_csv_path, index=False)
+        wandb.save(output_csv_path)
 
 
 def run_training(args):

@@ -64,10 +64,15 @@ def parse_args():
         default=config.TEST_DATA_DIR,
         help="Path to test_data directory",
     )
+    parser.add_argument(
+        "--MERGE_RESULTS_TO_METABOLIC_DF",
+        type=bool,
+        default=config.MERGE_RESULTS_TO_METABOLIC_DF,
+        help="Whether to merge predictions to the metabolic Excel file",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-
     run_training(args)

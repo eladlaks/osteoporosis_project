@@ -153,7 +153,7 @@ def train_model(
 
     # Optional merging with metabolic Excel
     if hasattr(wandb.config, "MERGE_RESULTS_TO_METABOLIC_DF") and wandb.config.MERGE_RESULTS_TO_METABOLIC_DF:
-        path_to_excel = "/Users/gideonbonwitt/Documents/Msc/osteoporosis_project/data/test_cropped_data/patient_details.xlsx"
+        path_to_excel = wandb.config.EXCEL_PATH
         metabolic_df = pd.read_excel(path_to_excel)
         prediction_map = {f: p for f, p in zip(filenames, all_preds)}
         class_names = ["normal", "osteopenia", "osteoporosis"]

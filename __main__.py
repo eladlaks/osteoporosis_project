@@ -70,6 +70,12 @@ def parse_args():
         default=config.MERGE_RESULTS_TO_METABOLIC_DF,
         help="Whether to merge predictions to the metabolic Excel file",
     )
+    parser.add_argument(
+    "--EXCEL_PATH",
+    type=str,
+    default=config.EXCEL_PATH,
+    help="Path to the Excel file for metabolic merging",
+    )
     return parser.parse_args()
 
 

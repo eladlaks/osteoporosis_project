@@ -22,4 +22,6 @@ parameters:
   USE_METABOLIC_FOR_TEST:
     values: [True]
   MERGE_RESULTS_TO_METABOLIC_DF:
-    values: [True]  
+    values: [True]
+  EXCEL_PATH:
+    values: ["data/test_cropped_data/patient_details.xlsx"]

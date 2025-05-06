@@ -33,3 +33,5 @@ USE_SCHEDULER = False
 
 # Merge predictions into metabolic Excel file at test time
 MERGE_RESULTS_TO_METABOLIC_DF = True
+
+EXCEL_PATH = os.path.join(os.getcwd(), "data/test_cropped_data/patient_details.xlsx")

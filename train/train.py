@@ -108,6 +108,8 @@ def train_model(
         # Step the scheduler with validation loss
         if scheduler:
             scheduler.step(val_loss)
+            current_lr = scheduler.get_last_lr()[0]
+            print(f"Epoch {epoch+1}, Learning Rate: {current_lr}")
 
     # Save the last model weights after training
     model_save_path = os.path.join("saved_models", f"{model_name}.pth")

@@ -325,7 +325,7 @@ def run_training(args):
         num_workers=wandb.config.NUM_WORKERS,
     )
     # Define loss criterion
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.NLLLoss()
 
     # List of models to train
     model_name = wandb.config.MODEL_NAME

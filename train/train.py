@@ -227,7 +227,7 @@ def run_training(args):
 
     wandb.login(key=WANDB_API_KEY)
     init_wandb(project_name="image_classification_project", args=args)
-    size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (224, 224)
+    size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (512, 512)
     prepare_to_network_transforms = [
         transforms.Resize(size),
         transforms.ToTensor(),

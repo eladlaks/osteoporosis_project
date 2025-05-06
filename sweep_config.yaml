@@ -4,9 +4,9 @@ metric:
   goal: maximize
 parameters:
   LEARNING_RATE:
-    values: [0.00001]
+    values: [0.00001,0.000001]
   BATCH_SIZE:
-    values: [4,16,32,64]
+    values: [32,64,128]
   NUM_WORKERS:
     value: 1
   NUM_EPOCHS:
@@ -14,7 +14,7 @@ parameters:
   USE_OSTEOPENIA:
     values: [True, False]
   MODEL_NAME:
-    values: ["ResNet50"]
+    values: ["ViT"]
   USE_CLAHE:
     values: [True, False]
   DATA_DIR:

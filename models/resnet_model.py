@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 
 def get_resnet_model():
-    model = models.resnet50(weights=True)
+    model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
 
     # for parameter in model.parameters():
     #     parameter.requires_grad = False
@@ -28,7 +28,6 @@ def get_resnet_model():
                 ("relu1", nn.ReLU()),
                 ("dropout", nn.Dropout(0.5)),
                 ("fc2", nn.Linear(512, wandb.config.NUM_CLASSES)),
-                ("output", nn.LogSoftmax(dim=1)),
             ]
         )
     )

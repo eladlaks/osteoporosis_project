@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 
 def get_resnet_model():
-    model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
+    model = models.resnet50(weights="ResNet50_Weights.DEFAULT")
 
     # for parameter in model.parameters():
     #     parameter.requires_grad = False

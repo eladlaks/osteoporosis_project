@@ -1,10 +1,11 @@
+import torch
 import torch.nn as nn
 from torchvision import models
 import wandb
 from collections import OrderedDict
 
 
-def get_resnet_model():
+def get_resnet_model(weights_path=None):
     model = models.resnet50(weights="ResNet50_Weights.DEFAULT")
 
     # for parameter in model.parameters():
@@ -38,5 +39,10 @@ def get_resnet_model():
             param.requires_grad = True
         else:
             param.requires_grad = False
+    if weights_path:
+        state_dict = torch.load(
+            weights_path, map_location=wandb.config.DEVICE
+        )  # or "cuda" if using GPU
+        model.load_state_dict(state_dict)
 
     return model

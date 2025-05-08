@@ -119,7 +119,7 @@ def train_model(
     print(f"Best model saved with validation loss: {best_val_loss:.4f}")
 
     # Final evaluation on test set
-    model.load_state_dict(torch.load(best_model_path))
+    model.load_state_dict(torch.load(best_model_path, weights_only=False))
     model.eval()
     test_loss = 0.0
     correct = 0
@@ -136,13 +136,13 @@ def train_model(
             loss = criterion(outputs, labels)
             test_loss += loss.item() * images.size(0)
 
-            if wandb.config.USE_OSTEOPENIA:
-                _, predicted = torch.max(outputs.data, 1)
-            else:
-                probs = torch.softmax(outputs, dim=1)
-                predicted = torch.tensor(
-                    [0 if p[0] > 0.6 else 1 if p[1] > 0.6 else 2 for p in probs]
-                ).to(wandb.config.DEVICE)
+            _, predicted = torch.max(outputs.data, 1)
+            probs = torch.softmax(outputs, dim=1)
+            # else:
+            #     probs = torch.softmax(outputs, dim=1)
+            #     predicted = torch.tensor(
+            #         [0 if p[0] > 0.6 else 1 if p[1] > 0.6 else 2 for p in probs]
+            #     ).to(wandb.config.DEVICE)
 
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
@@ -262,7 +262,7 @@ def run_training(args):
     train_transform = transforms.Compose(train_transformations)
 
     # Load the full dataset
-    full_dataset = ImageDataset(wandb.config.DATA_DIR, data_kind="train")
+    full_dataset = ImageDataset(wandb.config.DATA_DIR)
     wandb.config.NUM_CLASSES = len(set(full_dataset.labels))
     total_size = len(full_dataset)
     if wandb.config.USE_METABOLIC_FOR_TEST:
@@ -271,7 +271,7 @@ def run_training(args):
         train_dataset, val_dataset = torch.utils.data.random_split(
             full_dataset, [train_size, val_size]
         )
-        test_dataset = ImageDataset(wandb.config.TEST_DATA_DIR, data_kind="test")
+        test_dataset = ImageDataset(wandb.config.TEST_DATA_DIR)
         test_dataset.transform = eval_transform
 
     else:

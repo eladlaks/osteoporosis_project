@@ -53,7 +53,7 @@ def train_model(
     for epoch in range(wandb.config.NUM_EPOCHS):
         model.train()
         running_loss = 0.0
-        for images, labels in train_loader:
+        for images, labels, _ in train_loader:
             images = images.to(wandb.config.DEVICE)
             labels = labels.to(wandb.config.DEVICE)
             optimizer.zero_grad()
@@ -75,7 +75,7 @@ def train_model(
         correct = 0
         total = 0
         with torch.no_grad():
-            for images, labels in val_loader:
+            for images, labels, _ in val_loader:
                 images = images.to(wandb.config.DEVICE)
                 labels = labels.to(wandb.config.DEVICE)
                 outputs = model(images)
@@ -129,7 +129,7 @@ def train_model(
     all_probs = []
 
     with torch.no_grad():
-        for images, labels in test_loader:
+        for images, labels, _ in test_loader:
             images = images.to(wandb.config.DEVICE)
             labels = labels.to(wandb.config.DEVICE)
             outputs = model(images)

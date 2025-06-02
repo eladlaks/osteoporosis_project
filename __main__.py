@@ -64,6 +64,24 @@ def parse_args():
         default=config.TEST_DATA_DIR,
         help="Path to test_data directory",
     )
+    parser.add_argument(
+        "--USE_LABEL_SMOOTHING",
+        type=bool,
+        default=config.USE_LABEL_SMOOTHING,
+        help="Use Label Smoothing"
+    )
+    parser.add_argument(
+        "--USE_HARD_SAMPLING",
+        type=bool,
+        default=config.USE_HARD_SAMPLING,
+        help="Use confidence-based hard sampling"
+    )
+    parser.add_argument(
+        "--USE_CONFIDENCE_WEIGHTED_LOSS",
+        type=bool,
+        default=config.USE_CONFIDENCE_WEIGHTED_LOSS,
+        help="Use confidence-weighted loss"
+    )
     return parser.parse_args()
 
 

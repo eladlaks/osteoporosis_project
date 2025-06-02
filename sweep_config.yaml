@@ -2,22 +2,39 @@ method: grid
 metric:
   name: val_acc
   goal: maximize
+
 parameters:
   LEARNING_RATE:
     values: [0.000001]
   BATCH_SIZE:
     values: [32]
   NUM_WORKERS:
-    value: 1
+    values: [1]
   NUM_EPOCHS:
-    value: 20
+    values: [2] 
   USE_OSTEOPENIA:
     values: [True]
   MODEL_NAME:
-    values: ["ViT"]
+    values: ["ResNet50"]
   USE_CLAHE:
-    values: [True,False]
+    values: [False]
   DATA_DIR:
     values: ["data/cropped_data"]
   USE_METABOLIC_FOR_TEST:
-    values: [True,False]
+    values: [True]
+  USE_LABEL_SMOOTHING:
+    values: [True]
+  USE_HARD_SAMPLING:
+    values: [True]
+  USE_CONFIDENCE_WEIGHTED_LOSS:
+    values: [True]
+  LABEL_SMOOTHING_EPSILON:
+    values: [0.1]
+  CONFIDENCE_THRESHOLD:
+    values: [0.75]
+  CONFIDENCE_PENALTY_WEIGHT:
+    values: [2.0]
+  TRAIN_WEIGHTED_RANDOM_SAMPLER:
+    values: [True]
+  USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
+    values: [False]

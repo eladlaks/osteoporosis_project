@@ -60,4 +60,4 @@ class ImageDataset(Dataset):
         # image = preprocess_image(image)
         if self.transform:
             image = self.transform(image)
-        return image, label
+        return image, label, img_path

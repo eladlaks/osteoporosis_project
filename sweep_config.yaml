@@ -34,7 +34,5 @@ parameters:
     values: [0.75]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [2.0]
-  TRAIN_WEIGHTED_RANDOM_SAMPLER:
-    values: [True]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
-    values: [False]
+    values: [False, True]

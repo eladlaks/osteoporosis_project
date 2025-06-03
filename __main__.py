@@ -82,6 +82,30 @@ def parse_args():
         default=config.USE_CONFIDENCE_WEIGHTED_LOSS,
         help="Use confidence-weighted loss"
     )
+    parser.add_argument(
+        "--CONFIDENCE_PENALTY_WEIGHT",
+        type=float,
+        default=config.CONFIDENCE_PENALTY_WEIGHT,
+        help="Penalty weight for high-confidence mistakes",
+    )
+    parser.add_argument(
+        "--CONFIDENCE_THRESHOLD",
+        type=float,
+        default=config.CONFIDENCE_THRESHOLD,
+        help="Threshold under which predictions are considered low-confidence",
+    )
+    parser.add_argument(
+        "--LABEL_SMOOTHING_EPSILON",
+        type=float,
+        default=config.LABEL_SMOOTHING_EPSILON,
+        help="Epsilon value for label smoothing",
+    )
+    parser.add_argument(
+        "--USE_TRANSFORM_AUGMENTATION_IN_TRAINING",
+        type=bool,
+        default=config.USE_TRANSFORM_AUGMENTATION_IN_TRAINING,
+        help="Use data augmentation during training",
+    )
     return parser.parse_args()
 
 

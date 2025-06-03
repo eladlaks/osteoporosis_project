@@ -50,6 +50,7 @@ def train_model(
     criterion,
     optimizer,
     scheduler=None,
+    eval_transform=None
 ):
     model.to(wandb.config.DEVICE)
     best_val_loss = float("inf")  # Initialize best validation loss
@@ -415,6 +416,7 @@ def run_training(args):
         criterion,
         optimizer,
         scheduler,
+        eval_transform=eval_transform
     )
       # ==== Optional Fine-Tuning on Low Confidence Samples ====
     if wandb.config.USE_HARD_SAMPLING:
@@ -452,5 +454,6 @@ def run_training(args):
             criterion,
             optimizer,
             scheduler,
+            eval_transform=eval_transform
         )
     wandb.finish()

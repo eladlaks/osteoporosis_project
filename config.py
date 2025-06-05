@@ -22,7 +22,7 @@ MODEL_NAME = "ResNet50"
 USE_OSTEOPENIA = True  # Set to False if you want to exclude Osteopenia class from training
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)
-TRAIN_WEIGHTED_RANDOM_SAMPLER = True
+TRAIN_WEIGHTED_RANDOM_SAMPLER = False
 NUM_WORKERS = 1
 USE_METABOLIC_FOR_TEST = True
 USE_SCHEDULER = False

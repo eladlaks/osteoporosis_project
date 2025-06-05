@@ -112,4 +112,10 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
+    # Override args with wandb.config if running from a sweep
+    if wandb.run is not None:
+        for key in vars(args):
+            if key in wandb.config:
+                setattr(args, key, wandb.config[key])
+
     run_training(args)

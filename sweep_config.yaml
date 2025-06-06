@@ -21,7 +21,7 @@ parameters:
   USE_METABOLIC_FOR_TEST:
     values: [True]
   USE_LABEL_SMOOTHING:
-    values: [Faslse]
+    values: [False]
   LABEL_SMOOTHING_EPSILON:
     values: [0.1, 0.2]
   USE_CONFIDENCE_WEIGHTED_LOSS:

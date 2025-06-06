@@ -9,11 +9,11 @@ parameters:
   BATCH_SIZE:
     values: [32]
   LEARNING_RATE:
-    values: [1e-06, 1e-05]
+    values: [1e-05]
   NUM_EPOCHS:
-    values: [20]
+    values: [20,30,50]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
-    values: [True, False]
+    values: [True]
   USE_CLAHE:
     values: [False]
   USE_OSTEOPENIA:
@@ -21,13 +21,13 @@ parameters:
   USE_METABOLIC_FOR_TEST:
     values: [True]
   USE_LABEL_SMOOTHING:
-    values: [True]
+    values: [Faslse]
   LABEL_SMOOTHING_EPSILON:
     values: [0.1, 0.2]
   USE_CONFIDENCE_WEIGHTED_LOSS:
-    values: [True]
+    values: [False]
   USE_HARD_SAMPLING:
-    values: [True]
+    values: [False]
   CONFIDENCE_THRESHOLD:
     values: [0.75, 0.8]
   CONFIDENCE_PENALTY_WEIGHT:

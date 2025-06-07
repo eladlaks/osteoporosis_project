@@ -13,16 +13,23 @@ YOLO_WEIGHTS_PATH = os.path.join(
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Training configuration
 BATCH_SIZE = 32
-NUM_EPOCHS = 20
+NUM_EPOCHS = 2
 LEARNING_RATE = 0.000001
 ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = True
 USE_CLAHE = False
 MODEL_NAME = "ResNet50"
-USE_OSTEOPENIA = False
+USE_OSTEOPENIA = True  # Set to False if you want to exclude Osteopenia class from training
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)
-TRAIN_WEIGHTED_RANDOM_SAMPLER = True
+TRAIN_WEIGHTED_RANDOM_SAMPLER = False
 NUM_WORKERS = 1
 USE_METABOLIC_FOR_TEST = True
 USE_SCHEDULER = False
+# Custom Techniques
+USE_LABEL_SMOOTHING = True
+USE_CONFIDENCE_WEIGHTED_LOSS = True
+USE_HARD_SAMPLING = True
+CONFIDENCE_THRESHOLD = 0.75
+CONFIDENCE_PENALTY_WEIGHT = 2.0
+LABEL_SMOOTHING_EPSILON = 0.1

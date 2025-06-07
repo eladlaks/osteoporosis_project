@@ -30,6 +30,12 @@ from sklearn.metrics import (
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+from losses.label_smoothing import LabelSmoothingCrossEntropy
+from losses.confidence_weighted_loss import ConfidenceWeightedCrossEntropy
+from losses.combined_loss import CombinedLabelSmoothingConfidenceWeightedLoss
+
+from utils.hard_sampling import get_low_confidence_samples
+
 
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
@@ -44,6 +50,7 @@ def train_model(
     criterion,
     optimizer,
     scheduler=None,
+    eval_transform=None
 ):
     model.to(wandb.config.DEVICE)
     best_val_loss = float("inf")  # Initialize best validation loss
@@ -227,12 +234,28 @@ def train_model(
             for metric_name, value in metrics.items():
                 wandb.log({f"{model_name}_{label}_{metric_name}": value})
 
+    #Save low-confidence samples for hard sampling ===
+    if wandb.config.USE_HARD_SAMPLING:
+        full_dataset = ImageDataset(wandb.config.DATA_DIR, transform=eval_transform)
+        full_loader = DataLoader(full_dataset, batch_size=wandb.config.BATCH_SIZE, shuffle=False)
+
+        low_conf_paths = get_low_confidence_samples(
+            model, full_loader,
+            threshold=wandb.config.CONFIDENCE_THRESHOLD,
+            device=wandb.config.DEVICE
+        )
+
+        with open("low_conf_samples.txt", "w") as f:
+            for path in low_conf_paths:
+                f.write(path + "\n")
+
+        print(f"{len(low_conf_paths)} low-confidence samples saved to low_conf_samples.txt")
 
 def run_training(args):
     # Initialize wandb for this run
 
     wandb.login(key=WANDB_API_KEY)
-    init_wandb(project_name="image_classification_project", args=args)
+    init_wandb(project_name="osteoporosis_project", args=args)
     size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (512, 512)
     prepare_to_network_transforms = [
         transforms.Resize(size),
@@ -330,8 +353,32 @@ def run_training(args):
         shuffle=False,
         num_workers=wandb.config.NUM_WORKERS,
     )
-    # Define loss criterion
-    criterion = nn.CrossEntropyLoss()
+   # Logic to select the appropriate loss function
+    if (
+        wandb.config.USE_LABEL_SMOOTHING
+        and wandb.config.USE_CONFIDENCE_WEIGHTED_LOSS
+    ):
+        criterion = CombinedLabelSmoothingConfidenceWeightedLoss(
+            epsilon=wandb.config.LABEL_SMOOTHING_EPSILON,
+            threshold=wandb.config.CONFIDENCE_THRESHOLD,
+            penalty_factor=wandb.config.CONFIDENCE_PENALTY_WEIGHT,
+            reduction='mean'
+        )
+    elif wandb.config.USE_LABEL_SMOOTHING:
+        criterion = LabelSmoothingCrossEntropy(
+            epsilon=wandb.config.LABEL_SMOOTHING_EPSILON,
+            reduction='mean'
+        )
+    elif wandb.config.USE_CONFIDENCE_WEIGHTED_LOSS:
+        criterion = ConfidenceWeightedCrossEntropy(
+            threshold=wandb.config.CONFIDENCE_THRESHOLD,
+            penalty_factor=wandb.config.CONFIDENCE_PENALTY_WEIGHT,
+            reduction='mean'
+        )
+    else:
+        criterion = nn.CrossEntropyLoss()
+
+    wandb.log({"loss_type": criterion.__class__.__name__})
 
     # List of models to train
     model_name = wandb.config.MODEL_NAME
@@ -369,6 +416,44 @@ def run_training(args):
         criterion,
         optimizer,
         scheduler,
+        eval_transform=eval_transform
     )
+      # ==== Optional Fine-Tuning on Low Confidence Samples ====
+    if wandb.config.USE_HARD_SAMPLING:
+        from dataset_handler.filtered_dataset import FilteredImageDataset
 
+        # Load low-confidence paths
+        with open("low_conf_samples.txt", "r") as f:
+            selected_paths = set(line.strip() for line in f.readlines())
+
+        # Create dataset and loader
+        hard_dataset = FilteredImageDataset(
+            root_dir=wandb.config.DATA_DIR,
+            selected_paths_set=selected_paths,
+            transform=train_transform,
+        )
+        hard_loader = DataLoader(
+            hard_dataset,
+            batch_size=wandb.config.BATCH_SIZE,
+            shuffle=True,
+            num_workers=wandb.config.NUM_WORKERS,
+        )
+
+        # Reinitialize optimizer (optional)
+        optimizer = optim.Adam(
+            model.parameters(), lr=wandb.config.LEARNING_RATE, weight_decay=1e-5
+        )
+
+        print("Starting fine-tuning on low-confidence samples...")
+        train_model(
+            model,
+            model_name + "_hard_finetune",
+            hard_loader,
+            val_loader,
+            test_loader,
+            criterion,
+            optimizer,
+            scheduler,
+            eval_transform=eval_transform
+        )
     wandb.finish()

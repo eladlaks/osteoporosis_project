@@ -15,3 +15,4 @@ data/*
 wandb**.json
 wandb/**/**
 .DS_Store
+*.zip

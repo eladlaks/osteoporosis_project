@@ -268,7 +268,7 @@ def train_model(
             )
 
             # Load patient details CSV (try both Excel and CSV formats)
-            patient_details_path = "data/test_metabolic/patient_details.csv"
+            patient_details_path = "data/new_data/patient_details.csv"
             if os.path.exists(patient_details_path):
                 df_patient = pd.read_csv(patient_details_path)
             else:

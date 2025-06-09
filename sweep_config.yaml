@@ -35,4 +35,6 @@ parameters:
   NUM_WORKERS:
     values: [1]
   DATA_DIR:
-    values: ["data/cropped_data"]
+    values: ["data/new_data/concat_when_both/train"]
+  TEST_DATA_DIR:
+    values: ["data/new_data/concat_when_both/test"]

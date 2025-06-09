@@ -2,8 +2,8 @@ import os
 import torch
 
 # Data configuration
-DATA_DIR = os.path.join(os.getcwd(), "data//cropped_data")
-TEST_DATA_DIR = os.path.join(os.getcwd(), "data//test_cropped_data")
+DATA_DIR = os.path.join(os.getcwd(), "data//new_data//concat_when_both//train")
+TEST_DATA_DIR = os.path.join(os.getcwd(), "data//new_data//concat_when_both//test")
 DUPLICATE_THRESHOLD = 0.99  # (Not used directly here but can be adapted for more advanced duplicate checking)
 
 YOLO_WEIGHTS_PATH = os.path.join(

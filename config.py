@@ -19,7 +19,9 @@ ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = True
 USE_CLAHE = False
 MODEL_NAME = "ResNet50"
-USE_OSTEOPENIA = True  # Set to False if you want to exclude Osteopenia class from training
+USE_OSTEOPENIA = (
+    True  # Set to False if you want to exclude Osteopenia class from training
+)
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)
 TRAIN_WEIGHTED_RANDOM_SAMPLER = False

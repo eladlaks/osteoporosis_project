@@ -30,6 +30,7 @@ from sklearn.metrics import (
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from losses.label_smoothing import LabelSmoothingCrossEntropy
 from losses.confidence_weighted_loss import ConfidenceWeightedCrossEntropy
 from losses.combined_loss import CombinedLabelSmoothingConfidenceWeightedLoss
@@ -121,10 +122,15 @@ def train_model(
     torch.save(model.state_dict(), model_save_path)
     torch.save(best_model.state_dict(), best_model_path)
 
-    print(f"Saved last {model_name} model to {model_save_path}")
-    print(f"Best model saved with validation loss: {best_val_loss:.4f}")
+    artifact = wandb.Artifact(f"best_model_{model_name}", type="model")
+    artifact.add_file(best_model_path)
+    wandb.log_artifact(artifact)
+    # Log the best model weights to wandb
 
-    # Final evaluation on test set
+    print(f"Saved last {model_name} model to {model_save_path}")
+    print(
+        f"Best model saved with validation loss: {best_val_loss:.4f}"
+    )  # Final evaluation on test set
     model.load_state_dict(torch.load(best_model_path, weights_only=False))
     model.eval()
     test_loss = 0.0
@@ -133,9 +139,11 @@ def train_model(
     all_labels = []
     all_preds = []
     all_probs = []
+    all_images_path = []
+    all_image_legs = []
 
     with torch.no_grad():
-        for images, labels, _ in test_loader:
+        for images, labels, images_path in test_loader:
             images = images.to(wandb.config.DEVICE)
             labels = labels.to(wandb.config.DEVICE)
             outputs = model(images)
@@ -155,6 +163,18 @@ def train_model(
             all_labels.extend(labels.cpu().numpy())
             all_preds.extend(predicted.cpu().numpy())
             all_probs.extend(probs.cpu().numpy())
+            all_images_path.extend(
+                [
+                    os.path.splitext(os.path.basename(p))[0].split("_")[0]
+                    for p in images_path
+                ]
+            )
+            all_image_legs.extend(
+                [
+                    os.path.splitext(os.path.basename(p))[0].split("_")[1]
+                    for p in images_path
+                ]
+            )
 
     avg_test_loss = test_loss / len(test_loader.dataset)
     test_accuracy = correct / total
@@ -225,15 +245,85 @@ def train_model(
     report = classification_report(
         all_labels_np, all_preds_np, output_dict=True, zero_division=0
     )
-    wandb.log({f"{model_name}_classification_report": report})
-
-    # Log per-class metrics (optional)
+    wandb.log(
+        {f"{model_name}_classification_report": report}
+    )  # Log per-class metrics (optional)
     for label, metrics in report.items():
         if isinstance(metrics, dict):
             for metric_name, value in metrics.items():
                 wandb.log({f"{model_name}_{label}_{metric_name}": value})
 
-    # Save low-confidence samples for hard sampling ===
+    # Process patient details CSV and merge with predictions if using metabolic test data
+    if wandb.config.USE_METABOLIC_FOR_TEST:
+        try:
+            # Create predictions DataFrame
+            df_pred = pd.DataFrame(
+                {
+                    "labels": all_labels,
+                    "preds": all_preds,
+                    "probs": all_probs,
+                    "path": all_images_path,
+                    "leg_tag": all_image_legs,
+                }
+            )
+
+            # Load patient details CSV (try both Excel and CSV formats)
+            patient_details_path = "data/test_metabolic/patient_details.csv"
+            if os.path.exists(patient_details_path):
+                df_patient = pd.read_csv(patient_details_path)
+            else:
+                print("Warning: Patient details file not found")
+                df_patient = None
+
+            if df_patient is not None:
+                # Ensure the DataFrame has the necessary structure for probabilities
+                if "probs_class_0" not in df_patient.columns:
+                    df_patient["probs_class_0"] = None
+                    df_patient["probs_class_1"] = None
+                    df_patient["probs_class_2"] = None
+
+                # Merge predictions with patient details
+                df_merged = df_patient.reset_index().merge(
+                    df_pred, left_on="Patient Id", right_on="path"
+                )
+
+                # Extract individual probability classes
+                df_merged[["probs_class_0", "probs_class_1", "probs_class_2"]] = (
+                    pd.DataFrame(df_merged["probs"].tolist(), index=df_merged.index)
+                )
+
+                # Save the merged DataFrame
+                output_csv_path = f"patient_details_with_probs_output_{model_name}.csv"
+                df_merged.to_csv(output_csv_path, index=False)
+
+                # Log the CSV file to wandb
+                artifact = wandb.Artifact(f"test_metabolic_{model_name}", type="csv")
+                artifact.add_file(output_csv_path)
+                wandb.log_artifact(artifact)
+
+                print(f"Patient details with predictions saved to: {output_csv_path}")
+                print(f"CSV file logged to wandb")
+
+                # Log some summary statistics
+                wandb.log(
+                    {
+                        f"{model_name}_total_patients": len(df_merged),
+                        f"{model_name}_avg_prob_normal": df_merged[
+                            "probs_class_0"
+                        ].mean(),
+                        f"{model_name}_avg_prob_osteopenia": df_merged[
+                            "probs_class_1"
+                        ].mean(),
+                        f"{model_name}_avg_prob_osteoporosis": df_merged[
+                            "probs_class_2"
+                        ].mean(),
+                    }
+                )
+
+        except Exception as e:
+            print(f"Error processing patient details: {e}")
+
+    # Save low-confidence samples for hard sampling===
     if wandb.config.USE_HARD_SAMPLING:
         full_dataset = ImageDataset(wandb.config.DATA_DIR, transform=eval_transform)
         full_loader = DataLoader(

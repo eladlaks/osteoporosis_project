@@ -8,30 +8,30 @@ parameters:
     values: ["ResNet50"]
   BATCH_SIZE:
     values: [32]
-  LEARNING_RATE:
-    values: [1e-06, 1e-05]
   NUM_EPOCHS:
     values: [20]
+  LEARNING_RATE:
+    values: [1e-5]
+  CONFIDENCE_PENALTY_WEIGHT:
+    values: [2.0, 3.0]
+  CONFIDENCE_THRESHOLD:
+    values: [0.75, 0.8]
+  LABEL_SMOOTHING_EPSILON:
+    values: [0.1, 0.2]
+  USE_LABEL_SMOOTHING:
+    values: [True]
+  USE_CONFIDENCE_WEIGHTED_LOSS:
+    values: [True]
+  USE_HARD_SAMPLING:
+    values: [True]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
-    values: [True, False]
+    values: [True]
   USE_CLAHE:
     values: [False]
   USE_OSTEOPENIA:
     values: [True]
   USE_METABOLIC_FOR_TEST:
     values: [True]
-  USE_LABEL_SMOOTHING:
-    values: [True]
-  LABEL_SMOOTHING_EPSILON:
-    values: [0.1, 0.2]
-  USE_CONFIDENCE_WEIGHTED_LOSS:
-    values: [True]
-  USE_HARD_SAMPLING:
-    values: [True]
-  CONFIDENCE_THRESHOLD:
-    values: [0.75, 0.8]
-  CONFIDENCE_PENALTY_WEIGHT:
-    values: [2.0, 3.0]
   NUM_WORKERS:
     values: [1]
   DATA_DIR:

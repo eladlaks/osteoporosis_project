@@ -11,7 +11,7 @@ parameters:
   NUM_EPOCHS:
     values: [20]
   LEARNING_RATE:
-    values: []
+    values: [0.00001]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [2.0, 3.0]
   CONFIDENCE_THRESHOLD:

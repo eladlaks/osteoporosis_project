@@ -106,16 +106,20 @@ def parse_args():
         default=config.USE_TRANSFORM_AUGMENTATION_IN_TRAINING,
         help="Use data augmentation during training",
     )
-    return parser.parse_args()
+    return parser, parser.parse_args()
 
 
 if __name__ == "__main__":
-    args = parse_args()
+    parser, args = parse_args()
 
     # Override args with wandb.config if running from a sweep
     if wandb.run is not None:
-        for key in vars(args):
+        for action in parser._actions:
+            key = action.dest
             if key in wandb.config:
-                setattr(args, key, wandb.config[key])
+                value = wandb.config[key]
+                if action.type:
+                    value = action.type(value)
+                setattr(args, key, value)
 
     run_training(args)

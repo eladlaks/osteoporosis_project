@@ -9,9 +9,9 @@ parameters:
   BATCH_SIZE:
     values: [32]
   LEARNING_RATE:
-    values: [1e-05]
+    values: [0.00001]
   NUM_EPOCHS:
-    values: [20,30,50]
+    values: [20]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
     values: [True]
   USE_CLAHE:

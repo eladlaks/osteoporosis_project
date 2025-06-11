@@ -21,13 +21,13 @@ parameters:
   USE_METABOLIC_FOR_TEST:
     values: [True]
   USE_LABEL_SMOOTHING:
-    values: [False]
+    values: [True]
   LABEL_SMOOTHING_EPSILON:
     values: [0.1, 0.2]
   USE_CONFIDENCE_WEIGHTED_LOSS:
-    values: [False]
+    values: [True]
   USE_HARD_SAMPLING:
-    values: [False]
+    values: [True]
   CONFIDENCE_THRESHOLD:
     values: [0.75, 0.8]
   CONFIDENCE_PENALTY_WEIGHT:

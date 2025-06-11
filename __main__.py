@@ -45,7 +45,7 @@ def parse_args():
     )
     parser.add_argument(
         "--TRAIN_WEIGHTED_RANDOM_SAMPLER",
-        type=int,
+        type=bool,
         default=config.TRAIN_WEIGHTED_RANDOM_SAMPLER,
         help="TRAIN_WEIGHTED_RANDOM_SAMPLER",
     )

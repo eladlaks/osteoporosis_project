@@ -29,7 +29,9 @@ parameters:
   USE_HARD_SAMPLING:
     values: [True]
   CONFIDENCE_THRESHOLD:
-    values: [0.75, 0.8]
+    values: [0.8]
+  TRAIN_WEIGHTED_RANDOM_SAMPLER:
+    values: [True]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [2.0, 3.0]
   NUM_WORKERS:

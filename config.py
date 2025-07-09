@@ -2,8 +2,8 @@ import os
 import torch
 
 # Data configuration
-DATA_DIR = os.path.join(os.getcwd(), "data//new_data//concat_when_both//train")
-TEST_DATA_DIR = os.path.join(os.getcwd(), "data//new_data//concat_when_both//test")
+DATA_DIR = os.path.join(os.getcwd(), "data//cropped_data")
+TEST_DATA_DIR = os.path.join(os.getcwd(), "data//test_cropped_data")
 DUPLICATE_THRESHOLD = 0.99  # (Not used directly here but can be adapted for more advanced duplicate checking)
 
 YOLO_WEIGHTS_PATH = os.path.join(
@@ -19,9 +19,7 @@ ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = True
 USE_CLAHE = False
 MODEL_NAME = "ResNet50"
-USE_OSTEOPENIA = (
-    True  # Set to False if you want to exclude Osteopenia class from training
-)
+USE_OSTEOPENIA = True  # Set to False if you want to exclude Osteopenia class from training
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)
 TRAIN_WEIGHTED_RANDOM_SAMPLER = False

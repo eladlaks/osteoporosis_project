@@ -25,7 +25,7 @@ parameters:
   USE_LABEL_SMOOTHING:
     values: [True]
   LABEL_SMOOTHING_EPSILON:
-    values: [0.1]
+    values: [0.2]
   USE_CONFIDENCE_WEIGHTED_LOSS:
     values: [True]
   USE_HARD_SAMPLING:
@@ -33,7 +33,7 @@ parameters:
   CONFIDENCE_THRESHOLD:
     values: [0.75]
   CONFIDENCE_PENALTY_WEIGHT:
-    values: [2.0, 5.0]
+    values: [2.0, 3.0, 5.0]
   NUM_WORKERS:
     values: [1]
   DATA_DIR:

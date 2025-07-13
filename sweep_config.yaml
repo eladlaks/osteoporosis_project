@@ -10,6 +10,8 @@ parameters:
     values: [32]
   LEARNING_RATE:
     values: [0.00001]
+  FINE_TUNE_LR_MULTIPLIER: 
+  values: [1.0, 0.5, 0.2, 0.1]
   NUM_EPOCHS:
     values: [20]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:

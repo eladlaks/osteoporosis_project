@@ -9,7 +9,7 @@ parameters:
   BATCH_SIZE:
     values: [32]
   LEARNING_RATE:
-    values: [0.00001]
+    values: [0.0001]
   FINE_TUNE_LR_MULTIPLIER: 
     values: [1.0, 0.5, 0.2, 0.1]
   NUM_EPOCHS:
@@ -31,7 +31,7 @@ parameters:
   USE_HARD_SAMPLING:
     values: [True]
   CONFIDENCE_THRESHOLD:
-    values: [0.8]
+    values: [0.75]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [3.0]
   NUM_WORKERS:

@@ -529,10 +529,10 @@ def run_training(args):
             shuffle=True,
             num_workers=wandb.config.NUM_WORKERS,
         )
-        # Reinitialize optimizer with 10x smaller learning rate for fine-tuning
-        fine_tune_lr = wandb.config.LEARNING_RATE * 0.1
+
+        # Reinitialize optimizer (optional)
         optimizer = optim.Adam(
-            model.parameters(), lr=fine_tune_lr, weight_decay=1e-5
+            model.parameters(), lr=wandb.config.LEARNING_RATE, weight_decay=1e-5
         )
 
         print("Starting fine-tuning on low-confidence samples...")

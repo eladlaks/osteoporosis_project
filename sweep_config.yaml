@@ -31,9 +31,9 @@ parameters:
   USE_HARD_SAMPLING:
     values: [True]
   CONFIDENCE_THRESHOLD:
-    values: [0.75]
+    values: [0.7, 0.8]
   CONFIDENCE_PENALTY_WEIGHT:
-    values: [2.0, 3.0, 5.0]
+    values: [2.0]
   NUM_WORKERS:
     values: [1]
   DATA_DIR:

@@ -51,6 +51,7 @@ def train_model(
     optimizer,
     scheduler=None,
     eval_transform=None,
+    train_dataset=None,  # Pass the train_dataset for low-confidence sampling
 ):
     model.to(wandb.config.DEVICE)
     best_val_loss = float("inf")  # Initialize best validation loss
@@ -325,14 +326,16 @@ def train_model(
 
     # Save low-confidence samples for hard sampling===
     if wandb.config.USE_HARD_SAMPLING:
-        full_dataset = ImageDataset(wandb.config.DATA_DIR, transform=eval_transform)
-        full_loader = DataLoader(
-            full_dataset, batch_size=wandb.config.BATCH_SIZE, shuffle=False
+        # Only use training data for hard sampling to avoid leakage
+        train_eval_loader = DataLoader(
+            train_dataset,  # not full_dataset!
+            batch_size=wandb.config.BATCH_SIZE,
+            shuffle=False
         )
 
         low_conf_paths = get_low_confidence_samples(
             model,
-            full_loader,
+            train_eval_loader,
             threshold=wandb.config.CONFIDENCE_THRESHOLD,
             device=wandb.config.DEVICE,
         )
@@ -508,6 +511,7 @@ def run_training(args):
         optimizer,
         scheduler,
         eval_transform=eval_transform,
+        train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
     )
     # ==== Optional Fine-Tuning on Low Confidence Samples ====
     if wandb.config.USE_HARD_SAMPLING:

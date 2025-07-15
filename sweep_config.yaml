@@ -21,7 +21,7 @@ parameters:
   USE_OSTEOPENIA:
     values: [True]
   USE_METABOLIC_FOR_TEST:
-    values: [True]
+    values: [False]
   USE_LABEL_SMOOTHING:
     values: [True]
   LABEL_SMOOTHING_EPSILON:
@@ -29,15 +29,15 @@ parameters:
   USE_CONFIDENCE_WEIGHTED_LOSS:
     values: [True]
   USE_HARD_SAMPLING:
-    values: [True]
+    values: [True, False]
   CONFIDENCE_THRESHOLD:
-    values: [0.7, 0.8]
+    values: [0.75]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [2.0]
   NUM_WORKERS:
     values: [1]
   DATA_DIR:
-    values: ["data/new_data/concat_when_both/train"]
+    values: ["data/step_6_cropped_only_both"]
   TEST_DATA_DIR:
     values: ["data/new_data/concat_when_both/test"]
 

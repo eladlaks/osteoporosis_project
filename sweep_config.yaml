@@ -29,7 +29,7 @@ parameters:
   USE_CONFIDENCE_WEIGHTED_LOSS:
     values: [True]
   USE_HARD_SAMPLING:
-    values: [True, False]
+    values: [True]
   CONFIDENCE_THRESHOLD:
     values: [0.75]
   CONFIDENCE_PENALTY_WEIGHT:

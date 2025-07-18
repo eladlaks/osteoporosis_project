@@ -106,6 +106,12 @@ def parse_args():
         default=config.USE_TRANSFORM_AUGMENTATION_IN_TRAINING,
         help="Use data augmentation during training",
     )
+    parser.add_argument(
+    "--FINE_TUNE_LR_MULTIPLIER",
+    type=float,
+    default=1.0,
+    help="Multiplier for LR during fine-tuning with hard sampling",
+    )
     return parser, parser.parse_args()
 
 

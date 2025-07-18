@@ -51,6 +51,7 @@ def train_model(
     optimizer,
     scheduler=None,
     eval_transform=None,
+    train_dataset=None,  # Pass the train_dataset for low-confidence sampling
 ):
     model.to(wandb.config.DEVICE)
     best_val_loss = float("inf")  # Initialize best validation loss
@@ -325,14 +326,16 @@ def train_model(
 
     # Save low-confidence samples for hard sampling===
     if wandb.config.USE_HARD_SAMPLING:
-        full_dataset = ImageDataset(wandb.config.DATA_DIR, transform=eval_transform)
-        full_loader = DataLoader(
-            full_dataset, batch_size=wandb.config.BATCH_SIZE, shuffle=False
+        # Only use training data for hard sampling to avoid leakage
+        train_eval_loader = DataLoader(
+            train_dataset,  # not full_dataset!
+            batch_size=wandb.config.BATCH_SIZE,
+            shuffle=False
         )
 
         low_conf_paths = get_low_confidence_samples(
             model,
-            full_loader,
+            train_eval_loader,
             threshold=wandb.config.CONFIDENCE_THRESHOLD,
             device=wandb.config.DEVICE,
         )
@@ -508,6 +511,7 @@ def run_training(args):
         optimizer,
         scheduler,
         eval_transform=eval_transform,
+        train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
     )
     # ==== Optional Fine-Tuning on Low Confidence Samples ====
     if wandb.config.USE_HARD_SAMPLING:
@@ -529,11 +533,11 @@ def run_training(args):
             shuffle=True,
             num_workers=wandb.config.NUM_WORKERS,
         )
+        
 
-        # Reinitialize optimizer (optional)
-        optimizer = optim.Adam(
-            model.parameters(), lr=wandb.config.LEARNING_RATE, weight_decay=1e-5
-        )
+        # Reinitialize optimizer with difernatial learning rate
+        fine_tune_lr = wandb.config.LEARNING_RATE * wandb.config.FINE_TUNE_LR_MULTIPLIER
+        optimizer = optim.Adam(model.parameters(), lr=fine_tune_lr, weight_decay=1e-5)
 
         print("Starting fine-tuning on low-confidence samples...")
         train_model(
@@ -546,5 +550,6 @@ def run_training(args):
             optimizer,
             scheduler,
             eval_transform=eval_transform,
+            train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
     wandb.finish()

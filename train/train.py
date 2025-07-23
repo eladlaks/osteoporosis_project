@@ -555,5 +555,6 @@ def run_training(args):
             optimizer,
             scheduler,
             eval_transform=eval_transform,
+            train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
     wandb.finish()

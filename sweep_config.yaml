@@ -11,7 +11,7 @@ parameters:
   LEARNING_RATE:
     values: [0.00001]
   FINE_TUNE_LR_MULTIPLIER: 
-    values: [1.0]
+    values: [0.1]
   NUM_EPOCHS:
     values: [20]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
@@ -31,7 +31,7 @@ parameters:
   USE_HARD_SAMPLING:
     values: [False]
   CONFIDENCE_THRESHOLD:
-    values: [0.75]
+    values: [0.85]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [2.0]
   NUM_WORKERS:

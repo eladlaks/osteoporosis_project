@@ -7,11 +7,11 @@ parameters:
   MODEL_NAME:
     values: ["ResNet50"]
   BATCH_SIZE:
-    values: [32, 64]
+    values: [32]
   LEARNING_RATE:
     values: [0.0001]
   FINE_TUNE_LR_MULTIPLIER: 
-    values: [0.1]
+    values: [1.0]
   NUM_EPOCHS:
     values: [20]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
@@ -29,9 +29,9 @@ parameters:
   USE_CONFIDENCE_WEIGHTED_LOSS:
     values: [True]
   USE_HARD_SAMPLING:
-    values: [True]
+    values: [True, False]
   CONFIDENCE_THRESHOLD:
-    values: [0.85]
+    values: [0.75]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [2.0]
   NUM_WORKERS:

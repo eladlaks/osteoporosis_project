@@ -36,6 +36,7 @@ from losses.confidence_weighted_loss import ConfidenceWeightedCrossEntropy
 from losses.combined_loss import CombinedLabelSmoothingConfidenceWeightedLoss
 
 from utils.hard_sampling import get_low_confidence_samples
+from utils.saver import save_val_outputs
 
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
@@ -82,16 +83,25 @@ def train_model(
         val_loss = 0.0
         correct = 0
         total = 0
+        val_logits_batches, val_label_batches, val_path_batches = [], [], []
+
         with torch.no_grad():
-            for images, labels, _ in val_loader:
-                images = images.to(wandb.config.DEVICE)
-                labels = labels.to(wandb.config.DEVICE)
+            for images, labels, paths in val_loader:   # ← ודא שה-Dataset מחזיר גם paths
+                images  = images.to(wandb.config.DEVICE)
+                labels  = labels.to(wandb.config.DEVICE)
                 outputs = model(images)
+
+                val_logits_batches.append(outputs.cpu())
+                val_label_batches.append(labels.cpu())
+                val_path_batches.extend(paths)
+
                 loss = criterion(outputs, labels)
                 val_loss += loss.item() * images.size(0)
+
                 _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
+                total   += labels.size(0)
                 correct += (predicted == labels).sum().item()
+
 
         avg_val_loss = val_loss / len(val_loader.dataset)
         val_accuracy = correct / total
@@ -105,12 +115,34 @@ def train_model(
                 "epoch": epoch + 1,
             }
         )
-
-        # Save the best model based on validation loss
+        
+        # ------------------------------------------------------------------
+        # 1)  INSIDE THE EPOCH LOOP – just after val_loss / val_accuracy are computed
+        # ------------------------------------------------------------------
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            best_model = model
+            best_model    = model
+            torch.save(best_model.state_dict(), best_model_path)
             print(f"Best model with validation loss: {best_val_loss:.4f}")
+
+            # ---- NEW: save validation logits + labels (+ optional CSV) ----
+            run_tag = f"{model_name}_epoch{epoch+1}"
+            pt_file = save_val_outputs(
+                run_tag=run_tag,
+                logits=torch.cat(val_logits_batches),   # collected in the validation loop
+                labels=torch.cat(val_label_batches),
+                img_paths=val_path_batches              # list of file paths (optional)
+            )
+
+            # ---- NEW: upload checkpoint + validation outputs to W&B ----
+            artifact = wandb.Artifact(f"{model_name}_val_outputs", type="model-eval",
+                                    metadata={"epoch": epoch+1})
+            artifact.add_file(best_model_path)          # checkpoint (.pth)
+            artifact.add_file(pt_file)                  # logits + labels (.pt)
+            csv_file = pt_file.with_suffix(".csv")
+            if csv_file.exists():
+                artifact.add_file(csv_file)             # human-readable CSV
+            wandb.log_artifact(artifact)
 
         # Step the scheduler with validation loss
         if scheduler:
@@ -118,20 +150,16 @@ def train_model(
             current_lr = scheduler.get_last_lr()[0]
             print(f"Epoch {epoch+1}, Learning Rate: {current_lr}")
 
-    # Save the last model weights after training
+    # ------------------------------------------------------------------
+    # 2)  AFTER THE TRAINING LOOP  (no second artifact upload needed)
+    # ------------------------------------------------------------------
     model_save_path = os.path.join("saved_models", f"{model_name}.pth")
     torch.save(model.state_dict(), model_save_path)
-    torch.save(best_model.state_dict(), best_model_path)
-
-    artifact = wandb.Artifact(f"best_model_{model_name}", type="model")
-    artifact.add_file(best_model_path)
-    wandb.log_artifact(artifact)
-    # Log the best model weights to wandb
 
     print(f"Saved last {model_name} model to {model_save_path}")
-    print(
-        f"Best model saved with validation loss: {best_val_loss:.4f}"
-    )  # Final evaluation on test set
+    print(f"Best model saved with validation loss: {best_val_loss:.4f}")
+    
+    # Final evaluation on test set
     model.load_state_dict(torch.load(best_model_path, weights_only=False))
     model.eval()
     test_loss = 0.0

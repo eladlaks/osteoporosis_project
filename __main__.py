@@ -26,6 +26,9 @@ def parse_args():
         "--MODEL_NAME", type=str, default=config.MODEL_NAME, help="MODEL NAME"
     )
     parser.add_argument(
+        "--BACKBONE_NAME", type=str, default="resnet34", help="BACKBONE_NAME"
+    )
+    parser.add_argument(
         "--USE_OSTEOPENIA",
         type=bool,
         default=config.USE_OSTEOPENIA,
@@ -111,6 +114,18 @@ def parse_args():
     type=float,
     default=1.0,
     help="Multiplier for LR during fine-tuning with hard sampling",
+    )
+    parser.add_argument(
+    "--DROPOUT",
+    type=float,
+    default=0.5,
+    help="dropout parameter",
+    )
+    parser.add_argument(
+    "--RESNET_LAYERS_TO_TRAIN",
+    type=list,
+    default=["fc"],
+    help="which layers to unfreeze",
     )
     return parser, parser.parse_args()
 

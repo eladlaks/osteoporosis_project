@@ -12,6 +12,7 @@ from models.vit_model import get_vit_model
 from models.alexnet_model import get_alexnet_model
 from models.gideon_alex_net import get_gideon_alexnet_model
 from models.resnet_model import get_resnet_model
+from models.resnet_model import get_timm_model
 from models.dino_model import get_dinov2_model
 from torchvision import transforms
 from preprocessing.clahe import CLAHETransform
@@ -360,6 +361,8 @@ def run_training(args):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
+
+
     augmentation_transform = [
         transforms.RandomRotation(degrees=10),  # Small random rotation
         transforms.RandomHorizontalFlip(p=0.5),  # 50% chance to flip
@@ -488,16 +491,18 @@ def run_training(args):
         model_func = get_resnet_model
     elif model_name == "DINOv2":
         model_func = get_dinov2_model
+    elif model_name == "resnet34" or model_name == "resnet50" or model_name == "densenet121" or model_name == "efficientnet_b0":
+        model_func = get_timm_model
     else:
         raise ValueError(f"Unknown model name: {model_name}")
     print(f"Training {model_name} model...")
     model = model_func()
     optimizer = optim.Adam(
-        model.parameters(), lr=wandb.config.LEARNING_RATE, weight_decay=1e-5
+        model.parameters(), lr=wandb.config.LEARNING_RATE, weight_decay=1e-4
     )
     if wandb.config.USE_SCHEDULER:
         scheduler = ReduceLROnPlateau(
-            optimizer, mode="min", patience=4, factor=0.5, verbose=True
+            optimizer, mode="min", patience=2, factor=0.2, verbose=True
         )
     else:
         scheduler = None

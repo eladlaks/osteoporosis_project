@@ -7,20 +7,23 @@ program: ensembles/run_ensemble.py   # script to launch
 
 parameters:
   type:
-    values: ["soft", "weighted"]     # one sweep job per type
+    values: ["soft", "weighted"]            # one sweep job per type
+
   ckpts:
     values:
       - "['ensemble_assets/res_run1.pth','ensemble_assets/res_run2.pth','ensemble_assets/res_run3.pth','ensemble_assets/res_run4.pth']"
+
   archs:
     values:
       - "['resnet50','resnet50','resnet50','resnet50']"
-  weights:                           # only consulted when type == weighted
+
+  weights:                                  # used only when type == weighted
     values:
-      - "[0.25,0.25,0.25,0.25]"      # equal
-      - "[0.4,0.3,0.2,0.1]"          # manual bias
+      - "[0.25,0.25,0.25,0.25]"             # equal
+      - "[0.4,0.3,0.2,0.1]"                 # manual bias
+
   data:
-    value: "data/test_cropped_data"  # dataset root
+    value: "data/test_cropped_data"         # dataset root
+
   batch:
     value: 32
-  num_classes:                       # forwarded to --num_classes flag
-    value: 3

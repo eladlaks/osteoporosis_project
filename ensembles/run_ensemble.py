@@ -1,9 +1,9 @@
-# ensemble/run_ensemble.py
+# ensembles/run_ensemble.py
 """
 Run an already-trained ensemble (soft / weighted / stacking) on a dataset.
 """
 
-# Ensure project root is on PYTHONPATH when executed via wandb agent
+# Make sure project root is importable when executed via wandb agent
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 
@@ -18,24 +18,26 @@ from ensembles.weighted_voting  import WeightedVotingEnsemble
 from ensembles.stacking         import StackingEnsemble
 
 
-# ----------------------- CLI -----------------------
+# -------------- CLI --------------
 def _as_list(s: str):
-    """Convert '[1,2]' or 'a,b' into list."""
+    """Convert '[1,2]' or 'a,b' into list form."""
     return ast.literal_eval(s) if "[" in s else [x.strip() for x in s.split(",")]
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--type", required=True, choices=["soft", "weighted", "stacking"])
-    p.add_argument("--ckpts",  required=True)
-    p.add_argument("--archs",  required=True)
+    p.add_argument("--type",    required=True, choices=["soft", "weighted", "stacking"])
+    p.add_argument("--ckpts",   required=True)
+    p.add_argument("--archs",   required=True)
     p.add_argument("--weights", default=None)
     p.add_argument("--meta",    default=None)
     p.add_argument("--data",    default="data/test_cropped_data")
     p.add_argument("--batch",   type=int, default=32)
+    p.add_argument("--num_classes", type=int, default=3,
+                   help="Number of target classes (needed by model builders)")
     return p.parse_args()
 
 
-# ------------------- ensemble builder ---------------
+# ---------- ensemble builder ----------
 def build_ensemble(args, device):
     ckpts = _as_list(args.ckpts)
     archs = _as_list(args.archs)
@@ -52,7 +54,7 @@ def build_ensemble(args, device):
     sys.exit(f"Unknown ensemble type {args.type}")
 
 
-# ------------------------ main ----------------------
+# ----------------- main -----------------
 def main():
     args   = parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -62,6 +64,10 @@ def main():
         import wandb
         run = wandb.init(project="final_project", job_type="ensemble",
                          config=vars(args))
+        # ensure NUM_CLASSES is available for model builders
+        if "NUM_CLASSES" not in wandb.config:
+            wandb.config.update({"NUM_CLASSES": args.num_classes},
+                                allow_val_change=True)
     except ImportError:
         wandb = None
         run   = None
@@ -75,8 +81,7 @@ def main():
     all_labels, all_preds = [], []
     with torch.no_grad():
         for imgs, labels, _ in loader:
-            logits = ensemble(imgs.to(device))
-            preds  = logits.argmax(1)
+            preds = ensemble(imgs.to(device)).argmax(1)
             correct += (preds.cpu() == labels).sum().item()
             total   += labels.size(0)
             all_labels.extend(labels.tolist())

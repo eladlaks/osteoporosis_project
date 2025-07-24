@@ -385,6 +385,14 @@ def run_training(args):
     # Load the full dataset
     full_dataset = ImageDataset(wandb.config.DATA_DIR)
     wandb.config.NUM_CLASSES = len(set(full_dataset.labels))
+    
+    # Validate dataset
+    if len(full_dataset) == 0:
+        raise ValueError(f"No images found in {wandb.config.DATA_DIR}")
+    
+    print(f"Found {len(full_dataset)} images with {wandb.config.NUM_CLASSES} classes")
+    print(f"Class distribution: {dict(zip(*np.unique(full_dataset.labels, return_counts=True)))}")
+    
     total_size = len(full_dataset)
     if wandb.config.USE_METABOLIC_FOR_TEST:
         train_size = int(0.8 * total_size)

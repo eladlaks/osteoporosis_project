@@ -14,7 +14,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Training configuration
 BATCH_SIZE = 32
 NUM_EPOCHS = 2
-LEARNING_RATE = 0.000001
+LEARNING_RATE = 0.0001
 ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = False
 USE_CLAHE = False

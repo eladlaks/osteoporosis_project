@@ -125,25 +125,34 @@ def train_model(
             torch.save(best_model.state_dict(), best_model_path)
             print(f"Best model with validation loss: {best_val_loss:.4f}")
 
-            # ---- NEW: save validation logits + labels (+ optional CSV) ----
-            run_tag = f"{model_name}_epoch{epoch+1}"
+            # ----- save *single* logits/labels file -----
+            run_tag = f"{model_name}_best"                  # <-- שם קבוע
+
+            # remove previous version if it exists
+            from pathlib import Path
+            pt_prev  = Path("saved_models") / f"{run_tag}_val_logits.pt"
+            csv_prev = pt_prev.with_suffix(".csv")
+            if pt_prev.exists():  pt_prev.unlink()
+            if csv_prev.exists(): csv_prev.unlink()
+
             pt_file = save_val_outputs(
                 run_tag=run_tag,
-                logits=torch.cat(val_logits_batches),   # collected in the validation loop
+                logits=torch.cat(val_logits_batches),
                 labels=torch.cat(val_label_batches),
-                img_paths=val_path_batches              # list of file paths (optional)
+                img_paths=val_path_batches
             )
 
-            # ---- NEW: upload checkpoint + validation outputs to W&B ----
-            artifact = wandb.Artifact(f"{model_name}_val_outputs", type="model-eval",
-                                    metadata={"epoch": epoch+1})
-            artifact.add_file(best_model_path)          # checkpoint (.pth)
-            artifact.add_file(pt_file)                  # logits + labels (.pt)
+            # ----- W&B artifact (auto-versioned) -----
+            artifact = wandb.Artifact(
+                f"{model_name}_val_outputs", type="model-eval",
+                metadata={"source": "best"}                 # optional meta
+            )
+            artifact.add_file(best_model_path)              # weights
+            artifact.add_file(pt_file)                      # logits+labels
             csv_file = pt_file.with_suffix(".csv")
             if csv_file.exists():
-                artifact.add_file(csv_file)             # human-readable CSV
+                artifact.add_file(csv_file)                 # CSV view
             wandb.log_artifact(artifact)
-
         # Step the scheduler with validation loss
         if scheduler:
             scheduler.step(val_loss)

@@ -13,7 +13,7 @@ parameters:
   FINE_TUNE_LR_MULTIPLIER: 
     values: [1.0]
   NUM_EPOCHS:
-    values: [20]
+    values: [2]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
     values: [False]
   USE_CLAHE:
@@ -29,7 +29,7 @@ parameters:
   USE_CONFIDENCE_WEIGHTED_LOSS:
     values: [True]
   USE_HARD_SAMPLING:
-    values: [True, False]
+    values: [True]
   CONFIDENCE_THRESHOLD:
     values: [0.75]
   CONFIDENCE_PENALTY_WEIGHT:

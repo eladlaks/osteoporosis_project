@@ -33,3 +33,9 @@ USE_HARD_SAMPLING = True
 CONFIDENCE_THRESHOLD = 0.75
 CONFIDENCE_PENALTY_WEIGHT = 2.0
 LABEL_SMOOTHING_EPSILON = 0.1
+# ─── Ensemble defaults ─────────────────────────────────────────────
+ENSEMBLE_TYPE    = "none"           # none | soft | weighted | stacking
+CKPT_LIST        = []               # will be filled via CLI / sweep
+ARCH_LIST        = []               # e.g. ["resnet50", "vgg19", "vit"]
+ENSEMBLE_WEIGHTS = []               # only for weighted voting
+META_CLF_PATH    = ""               # only for stacking

@@ -1,0 +1,22 @@
+method: grid
+metric:
+  goal: maximize
+  name: ensemble_acc
+
+parameters:
+  type:
+    values: ["soft", "weighted"]
+  ckpts:
+    values:
+      - "['saved_models/runA_ResNet50_best.pth','saved_models/runB_ResNet50_best.pth','saved_models/runC_ResNet50_best.pth']"
+  archs:
+    values:
+      - "['resnet50','resnet50','resnet50']"
+  weights:
+    values:
+      - "[0.33,0.33,0.34]"
+      - "[0.6,0.3,0.1]"
+  data:
+    values: ["data/test_cropped_data"]
+  batch:
+    values: [32]

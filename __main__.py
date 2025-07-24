@@ -112,7 +112,19 @@ def parse_args():
     default=1.0,
     help="Multiplier for LR during fine-tuning with hard sampling",
     )
+    parser.add_argument("--ENSEMBLE_TYPE", type=str, default=config.ENSEMBLE_TYPE,
+                    help="none | soft | weighted | stacking")
+    parser.add_argument("--CKPT_LIST", type=str, default=str(config.CKPT_LIST),
+                        help="Python-style list of checkpoint paths")
+    parser.add_argument("--ARCH_LIST", type=str, default=str(config.ARCH_LIST),
+                        help="Python-style list of architecture names")
+    parser.add_argument("--ENSEMBLE_WEIGHTS", type=str,
+                        default=str(config.ENSEMBLE_WEIGHTS),
+                        help="List of floats, only for weighted voting")
+    parser.add_argument("--META_CLF_PATH", type=str, default=config.META_CLF_PATH,
+                        help="Pickle path for meta-classifier (stacking)")
     return parser, parser.parse_args()
+    
 
 
 if __name__ == "__main__":
@@ -127,5 +139,17 @@ if __name__ == "__main__":
                 if action.type:
                     value = action.type(value)
                 setattr(args, key, value)
+
+    # ─── convert the string representations back to lists ─────────
+    def _as_list(txt):
+        try:
+            return ast.literal_eval(txt)
+        except Exception:
+            return []
+
+    args.CKPT_LIST        = _as_list(args.CKPT_LIST)
+    args.ARCH_LIST        = _as_list(args.ARCH_LIST)
+    args.ENSEMBLE_WEIGHTS = _as_list(args.ENSEMBLE_WEIGHTS)
+    # ──────────────────────────────────────────────────────────────
 
     run_training(args)

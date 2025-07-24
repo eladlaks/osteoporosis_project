@@ -37,6 +37,9 @@ from losses.combined_loss import CombinedLabelSmoothingConfidenceWeightedLoss
 
 from utils.hard_sampling import get_low_confidence_samples
 from utils.saver import save_val_outputs
+from ensembles import (SoftVotingEnsemble,
+                        WeightedVotingEnsemble,
+                        StackingEnsemble)
 
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
@@ -126,7 +129,7 @@ def train_model(
             print(f"Best model with validation loss: {best_val_loss:.4f}")
 
             # ----- save *single* logits/labels file -----
-            run_tag = f"{model_name}_best"                  # <-- שם קבוע
+            run_tag = f"{model_name}_best"                 
 
             # remove previous version if it exists
             from pathlib import Path
@@ -589,4 +592,27 @@ def run_training(args):
             eval_transform=eval_transform,
             train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
+
+
+    def build_ensemble(cfg):
+        if cfg.ENSEMBLE_TYPE == "soft":
+            return SoftVotingEnsemble(cfg.CKPT_LIST, cfg.ARCH_LIST)
+        if cfg.ENSEMBLE_TYPE == "weighted":
+            return WeightedVotingEnsemble(cfg.CKPT_LIST, cfg.ARCH_LIST, cfg.ENSEMBLE_WEIGHTS)
+        if cfg.ENSEMBLE_TYPE == "stacking":
+            return StackingEnsemble(cfg.CKPT_LIST, cfg.ARCH_LIST, cfg.META_CLF_PATH)
+        return None
+
+    ensemble = build_ensemble(wandb.config)
+    if ensemble:
+        # example: run on test_loader and log accuracy
+        ensemble.eval().to(wandb.config.DEVICE)
+        correct, total = 0, 0
+        with torch.no_grad():
+            for imgs, labels, _ in test_loader:
+                preds = ensemble(imgs.to(wandb.config.DEVICE)).argmax(1)
+                correct += (preds.cpu() == labels).sum().item()
+                total   += labels.size(0)
+        wandb.log({"ensemble_acc": correct / total})
+    # Finish the wandb run
     wandb.finish()

@@ -1,11 +1,14 @@
-# ensemble/weighted_voting.py
+# ensembles/weighted_voting.py
 """
-Weighted‐Voting Ensemble
+Weighted-Voting Ensemble
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Like SoftVoting, but each expert can receive a user-supplied weight.
-Weights are normalised internally so you may pass any positive scale.
+Same idea as Soft-Voting, but each expert contributes with a user-defined
+positive weight.  The weights are normalised on the fly, so any scale
+(e.g. [1, 1, 2]) is acceptable.
 """
 
+from __future__ import annotations
+from typing import List
 import torch
 import torch.nn.functional as F
 
@@ -17,33 +20,40 @@ class WeightedVotingEnsemble(SoftVotingEnsemble):
     Parameters
     ----------
     ckpt_paths : list[str]
-        Checkpoints of the expert models.
+        Paths to N checkpoints.
     arch_names : list[str]
-        Architecture identifiers, same length / same order as ckpt_paths.
+        Architecture string for each checkpoint (same length).
     weights : list[float]
-        Relative weight per expert (same length). Must all be > 0.
+        Relative weight per expert, > 0.
     device : str
-        "cuda" or "cpu".
+        "cuda" or "cpu"
     """
 
     def __init__(
         self,
-        ckpt_paths: list[str],
-        arch_names: list[str],
-        weights: list[float],
+        ckpt_paths: List[str],
+        arch_names: List[str],
+        weights:    List[float],
         device: str = "cuda",
     ):
-        assert len(weights) == len(
-            ckpt_paths
-        ), "weights must match number of checkpoints"
+        assert len(weights) == len(ckpt_paths), "weights length mismatch"
+        assert all(w > 0 for w in weights),     "weights must be positive"
+
+        # store as tensor for fast ops later
         self.weights = torch.tensor(weights, dtype=torch.float32)
+
+        # initialises self.experts via _load_experts() in parent
         super().__init__(ckpt_paths, arch_names, device)
 
-    # only the forward changes – we reuse _load_experts from parent
+    # ------------- forward pass -------------
     @torch.no_grad()
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        logits = [m(x) for m in self.experts]  # list[(B,C)]
-        w = self.weights.to(self.device).view(-1, 1, 1)  # (M,1,1)
-        weighted = torch.stack(logits, dim=0) * w
-        avg_logits = weighted.sum(0) / self.weights.sum()
+        """
+        Returns class probabilities after weighted averaging of logits.
+        """
+        logits_list = [m(x) for m in self.experts]          # [(B,C)] * N
+        w = self.weights.to(self.device).view(-1, 1, 1)     # (N,1,1)
+
+        weighted_sum = (torch.stack(logits_list, 0) * w).sum(0)
+        avg_logits   = weighted_sum / self.weights.sum()
         return F.softmax(avg_logits, dim=1)

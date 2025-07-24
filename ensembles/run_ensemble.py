@@ -1,43 +1,19 @@
 # ensembles/run_ensemble.py
-"""
-Run an already-trained ensemble (soft / weighted / stacking) on a dataset.
-"""
-
-# Make sure project root is importable when executed via wandb agent
-import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-
-import argparse, ast, torch
+import sys, pathlib, argparse, ast, torch, pandas as pd
 from torch.utils.data import DataLoader
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 from datetime import datetime
-import pandas as pd
 
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from dataset_handler.dataset import ImageDataset
-from ensembles.soft_voting      import SoftVotingEnsemble
-from ensembles.weighted_voting  import WeightedVotingEnsemble
-from ensembles.stacking         import StackingEnsemble
+from ensembles.soft_voting     import SoftVotingEnsemble
+from ensembles.weighted_voting import WeightedVotingEnsemble
 
-
-# -------------- CLI --------------
+# ---------- helpers ----------
 def _as_list(s: str):
-    """Convert '[1,2]' or 'a,b' into list form."""
-    return ast.literal_eval(s) if "[" in s else [x.strip() for x in s.split(",")]
+    return ast.literal_eval(s) if s.startswith("[") else [x.strip() for x in s.split(",")]
 
-def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--type",    required=True, choices=["soft", "weighted", "stacking"])
-    p.add_argument("--ckpts",   required=True)
-    p.add_argument("--archs",   required=True)
-    p.add_argument("--weights", default=None)
-    p.add_argument("--meta",    default=None)
-    p.add_argument("--data",    default="data/test_cropped_data")
-    p.add_argument("--batch",   type=int, default=32)
-    p.add_argument("--num_classes", type=int, default=3,
-                   help="Number of target classes (needed by model builders)")
-    return p.parse_args()
-
-
-# ---------- ensemble builder ----------
 def build_ensemble(args, device):
     ckpts = _as_list(args.ckpts)
     archs = _as_list(args.archs)
@@ -45,63 +21,70 @@ def build_ensemble(args, device):
         return SoftVotingEnsemble(ckpts, archs, device)
     if args.type == "weighted":
         weights = _as_list(args.weights)
-        assert len(weights) == len(ckpts), "weights length mismatch"
         return WeightedVotingEnsemble(ckpts, archs, weights, device)
-    if args.type == "stacking":
-        if not args.meta:
-            sys.exit("Stacking requires --meta path")
-        return StackingEnsemble(ckpts, archs, args.meta, device)
     sys.exit(f"Unknown ensemble type {args.type}")
 
+# ---------- CLI ----------
+p = argparse.ArgumentParser()
+p.add_argument("--type",    required=True, choices=["soft", "weighted"])
+p.add_argument("--ckpts",   required=True)
+p.add_argument("--archs",   required=True)
+p.add_argument("--weights", default=None)
+p.add_argument("--data",    default="data/test_cropped_data")
+p.add_argument("--batch",   type=int, default=32)
+args = p.parse_args()
 
-# ----------------- main -----------------
-def main():
-    args   = parse_args()
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+device   = "cuda" if torch.cuda.is_available() else "cpu"
+ensemble = build_ensemble(args, device).eval().to(device)
 
-    # optional wandb run
-    try:
-        import wandb
-        run = wandb.init(project="final_project", job_type="ensemble",
-                         config=vars(args))
-        # ensure NUM_CLASSES is available for model builders
-        if "NUM_CLASSES" not in wandb.config:
-            wandb.config.update({"NUM_CLASSES": args.num_classes},
-                                allow_val_change=True)
-    except ImportError:
-        wandb = None
-        run   = None
+loader = DataLoader(ImageDataset(args.data),
+                    batch_size=args.batch, shuffle=False)
 
-    ensemble = build_ensemble(args, device).eval().to(device)
+all_true, all_pred, all_prob, all_path = [], [], [], []
+with torch.no_grad():
+    for imgs, labels, paths in loader:
+        probs = ensemble(imgs.to(device)).softmax(1)  # (B,C)
+        preds = probs.argmax(1).cpu()
+        all_true.extend(labels.tolist())
+        all_pred.extend(preds.tolist())
+        all_prob.extend(probs.cpu().tolist())
+        all_path.extend(paths)
 
-    loader = DataLoader(ImageDataset(args.data),
-                        batch_size=args.batch, shuffle=False)
+# -------- metrics --------
+acc = (torch.tensor(all_true) == torch.tensor(all_pred)).float().mean().item()
+cm  = confusion_matrix(all_true, all_pred)
 
-    correct = total = 0
-    all_labels, all_preds = [], []
-    with torch.no_grad():
-        for imgs, labels, _ in loader:
-            preds = ensemble(imgs.to(device)).argmax(1)
-            correct += (preds.cpu() == labels).sum().item()
-            total   += labels.size(0)
-            all_labels.extend(labels.tolist())
-            all_preds.extend(preds.cpu().tolist())
+# -------- save CSV --------
+csv_name = f"{args.type}_preds_{datetime.now():%Y%m%d_%H%M%S}.csv"
+cols = [f"p{i}" for i in range(len(all_prob[0]))]
+df = pd.DataFrame({
+    "sample": all_path,
+    "true":   all_true,
+    "pred":   all_pred,
+    "conf":   [max(p) for p in all_prob],
+    **{c: [row[i] for row in all_prob] for i, c in enumerate(cols)}
+})
+df.to_csv(csv_name, index=False)
 
-    acc = correct / total
-    print(f"Ensemble accuracy = {acc:.4f}")
+# -------- confusion-matrix figure --------
+disp = ConfusionMatrixDisplay(cm)
+disp.plot(cmap="Blues", colorbar=False)
+fig_name = csv_name.replace(".csv", "_cm.png")
+plt.savefig(fig_name, dpi=150)
+plt.close()
 
-    if wandb:
-        wandb.log({"ensemble_acc": acc})
+print(f"ensemble_acc = {acc:.4f}  |  CSV → {csv_name}")
 
-        # save predictions CSV
-        csv_name = f"{args.type}_preds_{datetime.now():%Y%m%d_%H%M%S}.csv"
-        pd.DataFrame({"true": all_labels, "pred": all_preds}).to_csv(csv_name, index=False)
-
-        art = wandb.Artifact(f"{args.type}_preds", type="predictions")
-        art.add_file(csv_name)
-        wandb.log_artifact(art)
-        run.finish()
-
-
-if __name__ == "__main__":
-    main()
+# -------- optional wandb logging --------
+try:
+    import wandb
+    run = wandb.init(project="final_project", job_type="ensemble",
+                     config=vars(args))
+    wandb.log({"ensemble_acc": acc})
+    art = wandb.Artifact(f"{args.type}_results", type="predictions")
+    art.add_file(csv_name)
+    art.add_file(fig_name)
+    run.log_artifact(art)
+    run.finish()
+except ImportError:
+    pass

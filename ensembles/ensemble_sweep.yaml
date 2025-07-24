@@ -1,7 +1,9 @@
 method: grid
 metric:
-  goal: maximize
   name: ensemble_acc
+  goal: maximize
+
+program: ensembles/run_ensemble.py      # <-- tells wandb what to run
 
 parameters:
   type:
@@ -17,6 +19,6 @@ parameters:
       - "[0.33,0.33,0.34]"
       - "[0.6,0.3,0.1]"
   data:
-    values: ["data/test_cropped_data"]
+    value: "data/test_cropped_data"
   batch:
-    values: [32]
+    value: 32

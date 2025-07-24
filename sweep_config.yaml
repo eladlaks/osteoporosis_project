@@ -9,25 +9,25 @@ parameters:
   BATCH_SIZE:
     values: [32]
   LEARNING_RATE:
-    values: [0.00001]
+    values: [0.0001]
   FINE_TUNE_LR_MULTIPLIER: 
     values: [0.1]
   NUM_EPOCHS:
-    values: [20]
+    values: [40]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
-    values: [True,False]
+    values: [True]
   USE_CLAHE:
     values: [False]
   USE_OSTEOPENIA:
     values: [True]
-  USE_METABOLIC_FOR_TEST:
-    values: [False]
+  USE_TEST_DATA_DIR:
+    values: [True]
   USE_LABEL_SMOOTHING:
-    values: [True,False]
+    values: [True]
   LABEL_SMOOTHING_EPSILON:
-    values: [0.05,0.1,0.2]
+    values: [0.1]
   USE_CONFIDENCE_WEIGHTED_LOSS:
-    values: [True,False]
+    values: [False]
   USE_HARD_SAMPLING:
     values: [False]
   CONFIDENCE_THRESHOLD:
@@ -37,15 +37,17 @@ parameters:
   NUM_WORKERS:
     values: [1]
   DATA_DIR:
-    values: ["data/step_6_cropped_only_both","data/no_dups_data"]
+    values: ["data/train_data"]
+  TEST_DATA_DIR:
+    values: ["data/test_data"]
   RESNET_LAYERS_TO_TRAIN:
-    values: [["fc","layer3","layer4"],["fc","layer4"],["fc"]]
+    values: [["fc","layer2","layer3","layer4"]]
   DROPOUT:
     values: [0.5]
   USE_SCHEDULER: 
-    values: [True]
+    values: [False]
   BACKBONE_NAME:
-    values : ["resnet34","resnet50","densenet121","efficientnet_b0"]
+    values : ["ResNet50","resnet34"]
 
 
 

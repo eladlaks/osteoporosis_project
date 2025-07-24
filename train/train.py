@@ -37,6 +37,7 @@ from losses.confidence_weighted_loss import ConfidenceWeightedCrossEntropy
 from losses.combined_loss import CombinedLabelSmoothingConfidenceWeightedLoss
 
 from utils.hard_sampling import get_low_confidence_samples
+from utils.saver import save_test_outputs
 
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
@@ -124,206 +125,11 @@ def train_model(
     torch.save(model.state_dict(), model_save_path)
     torch.save(best_model.state_dict(), best_model_path)
 
-    artifact = wandb.Artifact(f"best_model_{model_name}", type="model")
-    artifact.add_file(best_model_path)
-    wandb.log_artifact(artifact)
-    # Log the best model weights to wandb
-
     print(f"Saved last {model_name} model to {model_save_path}")
     print(
         f"Best model saved with validation loss: {best_val_loss:.4f}"
     )  # Final evaluation on test set
-    model.load_state_dict(torch.load(best_model_path, weights_only=False))
-    model.eval()
-    test_loss = 0.0
-    correct = 0
-    total = 0
-    all_labels = []
-    all_preds = []
-    all_probs = []
-    all_images_path = []
-    all_image_legs = []
-
-    with torch.no_grad():
-        for images, labels, images_path in test_loader:
-            images = images.to(wandb.config.DEVICE)
-            labels = labels.to(wandb.config.DEVICE)
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            test_loss += loss.item() * images.size(0)
-
-            _, predicted = torch.max(outputs.data, 1)
-            probs = torch.softmax(outputs, dim=1)
-            # else:
-            #     probs = torch.softmax(outputs, dim=1)
-            #     predicted = torch.tensor(
-            #         [0 if p[0] > 0.6 else 1 if p[1] > 0.6 else 2 for p in probs]
-            #     ).to(wandb.config.DEVICE)
-
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            all_labels.extend(labels.cpu().numpy())
-            all_preds.extend(predicted.cpu().numpy())
-            all_probs.extend(probs.cpu().numpy())
-            all_images_path.extend(
-                [
-                    os.path.splitext(os.path.basename(p))[0].split("_")[0]
-                    for p in images_path
-                ]
-            )
-            all_image_legs.extend(
-                [
-                    os.path.splitext(os.path.basename(p))[0].split("_")[1]
-                    for p in images_path
-                ]
-            )
-
-    avg_test_loss = test_loss / len(test_loader.dataset)
-    test_accuracy = correct / total
-
-    # Convert to numpy arrays
-    all_labels_np = np.array(all_labels)
-    all_preds_np = np.array(all_preds)
-    all_probs_np = np.array(all_probs)
-
-    # Compute evaluation metrics
-    test_f1 = f1_score(all_labels_np, all_preds_np, average="macro")
-    test_precision = precision_score(all_labels_np, all_preds_np, average="macro")
-    test_recall = recall_score(all_labels_np, all_preds_np, average="macro")
-
-    try:
-        all_labels_one_hot = np.eye(wandb.config.NUM_CLASSES)[all_labels_np]
-        test_auc = roc_auc_score(
-            all_labels_one_hot, all_probs_np, average="macro", multi_class="ovr"
-        )
-    except Exception as e:
-        print(f"AUC computation failed: {e}")
-        test_auc = None
-
-    if test_auc is not None:
-        auc_str = f"{test_auc:.4f}"
-    else:
-        auc_str = "N/A"
-
-    print(
-        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}, "
-        f"F1: {test_f1:.4f}, Precision: {test_precision:.4f}, Recall: {test_recall:.4f}, AUC: {auc_str}"
-    )
-
-    wandb.log(
-        {
-            f"test_loss": avg_test_loss,
-            f"test_acc": test_accuracy,
-            f"test_f1": test_f1,
-            f"test_precision": test_precision,
-            f"test_recall": test_recall,
-            f"test_auc": test_auc if test_auc is not None else 0.0,
-        }
-    )
-    # Confusion Matrix
-    if wandb.config.NUM_CLASSES == 2:
-        cm = confusion_matrix(all_labels_np, all_preds_np)
-        class_names = ["Normal", "Osteoporosis"]
-    else:
-        cm = confusion_matrix(all_labels_np, all_preds_np)
-        class_names = ["Normal", "Osteopenia", "Osteoporosis"]
-
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(
-        cm,
-        annot=True,
-        fmt="d",
-        cmap="Blues",
-        xticklabels=class_names,
-        yticklabels=class_names,
-    )
-    plt.xlabel("Predicted Label")
-    plt.ylabel("True Label")
-    plt.title(f"Confusion Matrix - {model_name}")
-    wandb.log({f"{model_name}_confusion_matrix": wandb.Image(plt)})
-    plt.close()
-
-    # Classification Report + Per-Class Metrics
-    report = classification_report(
-        all_labels_np, all_preds_np, output_dict=True, zero_division=0
-    )
-    wandb.log(
-        {f"{model_name}_classification_report": report}
-    )  # Log per-class metrics (optional)
-    for label, metrics in report.items():
-        if isinstance(metrics, dict):
-            for metric_name, value in metrics.items():
-                wandb.log({f"{model_name}_{label}_{metric_name}": value})
-
-    # Process patient details CSV and merge with predictions if using metabolic test data
-    if wandb.config.USE_METABOLIC_FOR_TEST:
-        try:
-            # Create predictions DataFrame
-            df_pred = pd.DataFrame(
-                {
-                    "labels": all_labels,
-                    "preds": all_preds,
-                    "probs": all_probs,
-                    "path": all_images_path,
-                    "leg_tag": all_image_legs,
-                }
-            )
-
-            # Load patient details CSV (try both Excel and CSV formats)
-            patient_details_path = "data/new_data/patient_details.csv"
-            if os.path.exists(patient_details_path):
-                df_patient = pd.read_csv(patient_details_path)
-            else:
-                print("Warning: Patient details file not found")
-                df_patient = None
-
-            if df_patient is not None:
-                # Ensure the DataFrame has the necessary structure for probabilities
-                if "probs_class_0" not in df_patient.columns:
-                    df_patient["probs_class_0"] = None
-                    df_patient["probs_class_1"] = None
-                    df_patient["probs_class_2"] = None
-
-                # Merge predictions with patient details
-                df_merged = df_patient.reset_index().merge(
-                    df_pred, left_on="Patient Id", right_on="path"
-                )
-
-                # Extract individual probability classes
-                df_merged[["probs_class_0", "probs_class_1", "probs_class_2"]] = (
-                    pd.DataFrame(df_merged["probs"].tolist(), index=df_merged.index)
-                )
-
-                # Save the merged DataFrame
-                output_csv_path = f"patient_details_with_probs_output_{model_name}.csv"
-                df_merged.to_csv(output_csv_path, index=False)
-
-                # Log the CSV file to wandb
-                artifact = wandb.Artifact(f"test_metabolic_{model_name}", type="csv")
-                artifact.add_file(output_csv_path)
-                wandb.log_artifact(artifact)
-
-                print(f"Patient details with predictions saved to: {output_csv_path}")
-                print(f"CSV file logged to wandb")
-
-                # Log some summary statistics
-                wandb.log(
-                    {
-                        f"{model_name}_total_patients": len(df_merged),
-                        f"{model_name}_avg_prob_normal": df_merged[
-                            "probs_class_0"
-                        ].mean(),
-                        f"{model_name}_avg_prob_osteopenia": df_merged[
-                            "probs_class_1"
-                        ].mean(),
-                        f"{model_name}_avg_prob_osteoporosis": df_merged[
-                            "probs_class_2"
-                        ].mean(),
-                    }
-                )
-
-        except Exception as e:
-            print(f"Error processing patient details: {e}")
+    use_best_model_gideon(best_model,model_name,best_model_path,test_loader,criterion)
 
     # Save low-confidence samples for hard sampling===
     if wandb.config.USE_HARD_SAMPLING:
@@ -364,10 +170,14 @@ def run_training(args):
 
 
     augmentation_transform = [
+        transforms.RandomResizedCrop(224),
         transforms.RandomRotation(degrees=10),  # Small random rotation
         transforms.RandomHorizontalFlip(p=0.5),  # 50% chance to flip
-        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1)),  # Small shifts
-        transforms.ColorJitter(brightness=0.2, contrast=0.2),  # Adjust contrast
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # Small shifts
+        transforms.ColorJitter(brightness=0.2, 
+                           contrast=0.2, 
+                           saturation=0.2, 
+                           hue=0.1),  # Adjust contrast
     ]
 
     all_transformation = []
@@ -389,7 +199,7 @@ def run_training(args):
     full_dataset = ImageDataset(wandb.config.DATA_DIR)
     wandb.config.NUM_CLASSES = len(set(full_dataset.labels))
     total_size = len(full_dataset)
-    if wandb.config.USE_METABOLIC_FOR_TEST:
+    if wandb.config.USE_TEST_DATA_DIR:
         train_size = int(0.8 * total_size)
         val_size = total_size - train_size
         train_dataset, val_dataset = torch.utils.data.random_split(
@@ -558,3 +368,444 @@ def run_training(args):
             train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
     wandb.finish()
+
+
+def use_best_model(best_model,model_name,best_model_path,test_loader,criterion):
+
+    artifact = wandb.Artifact(f"best_model_{model_name}", type="model")
+    artifact.add_file(best_model_path)
+    wandb.log_artifact(artifact)
+    # Log the best model weights to wandb
+
+    best_model.load_state_dict(torch.load(best_model_path, weights_only=False))
+    best_model.eval()
+    test_loss = 0.0
+    correct = 0
+    total = 0
+    all_labels = []
+    all_preds = []
+    all_probs = []
+    all_images_path = []
+    all_image_legs = []
+
+    with torch.no_grad():
+        for images, labels, images_path in test_loader:
+            images = images.to(wandb.config.DEVICE)
+            labels = labels.to(wandb.config.DEVICE)
+            outputs = best_model(images)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item() * images.size(0)
+
+            _, predicted = torch.max(outputs.data, 1)
+            probs = torch.softmax(outputs, dim=1)
+            # else:
+            #     probs = torch.softmax(outputs, dim=1)
+            #     predicted = torch.tensor(
+            #         [0 if p[0] > 0.6 else 1 if p[1] > 0.6 else 2 for p in probs]
+            #     ).to(wandb.config.DEVICE)
+
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            all_labels.extend(labels.cpu().numpy())
+            all_preds.extend(predicted.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
+            all_images_path.extend(
+                [
+                    os.path.splitext(os.path.basename(p))[0].split("_")[0]
+                    for p in images_path
+                ]
+            )
+            all_image_legs.extend(
+                [
+                    os.path.splitext(os.path.basename(p))[0].split("_")[1]
+                    for p in images_path
+                ]
+            )
+
+    avg_test_loss = test_loss / len(test_loader.dataset)
+    test_accuracy = correct / total
+
+    # Convert to numpy arrays
+    all_labels_np = np.array(all_labels)
+    all_preds_np = np.array(all_preds)
+    all_probs_np = np.array(all_probs)
+
+    # Compute evaluation metrics
+    test_f1 = f1_score(all_labels_np, all_preds_np, average="macro")
+    test_precision = precision_score(all_labels_np, all_preds_np, average="macro")
+    test_recall = recall_score(all_labels_np, all_preds_np, average="macro")
+
+    try:
+        all_labels_one_hot = np.eye(wandb.config.NUM_CLASSES)[all_labels_np]
+        test_auc = roc_auc_score(
+            all_labels_one_hot, all_probs_np, average="macro", multi_class="ovr"
+        )
+    except Exception as e:
+        print(f"AUC computation failed: {e}")
+        test_auc = None
+
+    if test_auc is not None:
+        auc_str = f"{test_auc:.4f}"
+    else:
+        auc_str = "N/A"
+
+    print(
+        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}, "
+        f"F1: {test_f1:.4f}, Precision: {test_precision:.4f}, Recall: {test_recall:.4f}, AUC: {auc_str}"
+    )
+
+    wandb.log(
+        {
+            f"test_loss": avg_test_loss,
+            f"test_acc": test_accuracy,
+            f"test_f1": test_f1,
+            f"test_precision": test_precision,
+            f"test_recall": test_recall,
+            f"test_auc": test_auc if test_auc is not None else 0.0,
+        }
+    )
+    # Confusion Matrix
+    if wandb.config.NUM_CLASSES == 2:
+        cm = confusion_matrix(all_labels_np, all_preds_np)
+        class_names = ["Normal", "Osteoporosis"]
+    else:
+        cm = confusion_matrix(all_labels_np, all_preds_np)
+        class_names = ["Normal", "Osteopenia", "Osteoporosis"]
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=class_names,
+        yticklabels=class_names,
+    )
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.title(f"Confusion Matrix - {model_name}")
+    wandb.log({f"{model_name}_confusion_matrix": wandb.Image(plt)})
+    plt.close()
+
+    # Classification Report + Per-Class Metrics
+    report = classification_report(
+        all_labels_np, all_preds_np, output_dict=True, zero_division=0
+    )
+    wandb.log(
+        {f"{model_name}_classification_report": report}
+    )  # Log per-class metrics (optional)
+    for label, metrics in report.items():
+        if isinstance(metrics, dict):
+            for metric_name, value in metrics.items():
+                wandb.log({f"{model_name}_{label}_{metric_name}": value})
+
+    # Process patient details CSV and merge with predictions if using metabolic test data
+    if wandb.config.USE_TEST_DATA_DIR:
+        try:
+            # Create predictions DataFrame
+            df_pred = pd.DataFrame(
+                {
+                    "labels": all_labels,
+                    "preds": all_preds,
+                    "probs": all_probs,
+                    "path": all_images_path,
+                    "leg_tag": all_image_legs,
+                }
+            )
+
+            # Load patient details CSV (try both Excel and CSV formats)
+            patient_details_path = "data/new_data/patient_details.csv"
+            if os.path.exists(patient_details_path):
+                df_patient = pd.read_csv(patient_details_path)
+            else:
+                print("Warning: Patient details file not found")
+                df_patient = None
+
+            if df_patient is not None:
+                # Ensure the DataFrame has the necessary structure for probabilities
+                if "probs_class_0" not in df_patient.columns:
+                    df_patient["probs_class_0"] = None
+                    df_patient["probs_class_1"] = None
+                    df_patient["probs_class_2"] = None
+
+                # Merge predictions with patient details
+                df_merged = df_patient.reset_index().merge(
+                    df_pred, left_on="Patient Id", right_on="path"
+                )
+
+                # Extract individual probability classes
+                df_merged[["probs_class_0", "probs_class_1", "probs_class_2"]] = (
+                    pd.DataFrame(df_merged["probs"].tolist(), index=df_merged.index)
+                )
+
+                # Save the merged DataFrame
+                output_csv_path = f"patient_details_with_probs_output_{model_name}.csv"
+                df_merged.to_csv(output_csv_path, index=False)
+
+                # Log the CSV file to wandb
+                artifact = wandb.Artifact(f"test_metabolic_{model_name}", type="csv")
+                artifact.add_file(output_csv_path)
+                wandb.log_artifact(artifact)
+
+                print(f"Patient details with predictions saved to: {output_csv_path}")
+                print(f"CSV file logged to wandb")
+
+                # Log some summary statistics
+                wandb.log(
+                    {
+                        f"{model_name}_total_patients": len(df_merged),
+                        f"{model_name}_avg_prob_normal": df_merged[
+                            "probs_class_0"
+                        ].mean(),
+                        f"{model_name}_avg_prob_osteopenia": df_merged[
+                            "probs_class_1"
+                        ].mean(),
+                        f"{model_name}_avg_prob_osteoporosis": df_merged[
+                            "probs_class_2"
+                        ].mean(),
+                    }
+                )
+
+        except Exception as e:
+            print(f"Error processing patient details: {e}")
+
+
+
+def use_best_model_gideon(best_model,model_name,best_model_path,test_loader,criterion):
+
+    artifact = wandb.Artifact(f"best_model_{model_name}", type="model")
+    artifact.add_file(best_model_path)
+    wandb.log_artifact(artifact)
+    # Log the best model weights to wandb
+
+    best_model.load_state_dict(torch.load(best_model_path, weights_only=False))
+    best_model.eval()
+    test_loss = 0.0
+    correct = 0
+    total = 0
+    all_labels = []
+    all_preds = []
+    all_probs = []
+    all_images_path = []
+    all_image_legs = []
+    
+# ----- save *single* logits/labels file -----
+    run_tag = f"{model_name}_best"                  # <-- שם קבוע
+    # Validation step
+    best_model.eval()
+    val_loss = 0.0
+    correct = 0
+    total = 0
+    test_logits_batches, test_label_batches, test_path_batches = [], [], []
+
+    # remove previous version if it exists
+    from pathlib import Path
+    pt_prev  = Path("saved_models") / f"{run_tag}_val_logits.pt"
+    csv_prev = pt_prev.with_suffix(".csv")
+    if pt_prev.exists():  pt_prev.unlink()
+    if csv_prev.exists(): csv_prev.unlink()
+
+    
+
+    with torch.no_grad():
+        for images, labels, images_path in test_loader:
+            images = images.to(wandb.config.DEVICE)
+            labels = labels.to(wandb.config.DEVICE)
+            outputs = best_model(images)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item() * images.size(0)
+            test_logits_batches.append(outputs.cpu())
+            test_label_batches.append(labels.cpu())
+            test_path_batches.extend(images_path)
+            _, predicted = torch.max(outputs.data, 1)
+            probs = torch.softmax(outputs, dim=1)
+            # else:
+            #     probs = torch.softmax(outputs, dim=1)
+            #     predicted = torch.tensor(
+            #         [0 if p[0] > 0.6 else 1 if p[1] > 0.6 else 2 for p in probs]
+            #     ).to(wandb.config.DEVICE)
+
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            all_labels.extend(labels.cpu().numpy())
+            all_preds.extend(predicted.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
+            all_images_path.extend(
+                [
+                    os.path.splitext(os.path.basename(p))[0].split("_")[0]
+                    for p in images_path
+                ]
+            )
+            all_image_legs.extend(
+                [
+                    os.path.splitext(os.path.basename(p))[0].split("_")[1]
+                    for p in images_path
+                ]
+            )
+
+
+    pt_file = save_test_outputs(
+        run_tag=run_tag,
+        logits=torch.cat(test_logits_batches),
+        labels=torch.cat(test_label_batches),
+        img_paths=test_path_batches
+    )
+
+    # ----- W&B artifact (auto-versioned) -----
+    artifact = wandb.Artifact(
+        f"{model_name}_test_outputs", type="model-eval",
+        metadata={"source": "best"}                 # optional meta
+    )
+    artifact.add_file(best_model_path)              # weights
+    artifact.add_file(pt_file)                      # logits+labels
+    csv_file = pt_file.with_suffix(".csv")
+    if csv_file.exists():
+        artifact.add_file(csv_file)                 # CSV view
+    wandb.log_artifact(artifact)
+
+    avg_test_loss = test_loss / len(test_loader.dataset)
+    test_accuracy = correct / total
+
+    # Convert to numpy arrays
+    all_labels_np = np.array(all_labels)
+    all_preds_np = np.array(all_preds)
+    all_probs_np = np.array(all_probs)
+
+    # Compute evaluation metrics
+    test_f1 = f1_score(all_labels_np, all_preds_np, average="macro")
+    test_precision = precision_score(all_labels_np, all_preds_np, average="macro")
+    test_recall = recall_score(all_labels_np, all_preds_np, average="macro")
+
+    try:
+        all_labels_one_hot = np.eye(wandb.config.NUM_CLASSES)[all_labels_np]
+        test_auc = roc_auc_score(
+            all_labels_one_hot, all_probs_np, average="macro", multi_class="ovr"
+        )
+    except Exception as e:
+        print(f"AUC computation failed: {e}")
+        test_auc = None
+
+    if test_auc is not None:
+        auc_str = f"{test_auc:.4f}"
+    else:
+        auc_str = "N/A"
+
+    print(
+        f"[{model_name}] Test Loss: {avg_test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}, "
+        f"F1: {test_f1:.4f}, Precision: {test_precision:.4f}, Recall: {test_recall:.4f}, AUC: {auc_str}"
+    )
+
+    wandb.log(
+        {
+            f"test_loss": avg_test_loss,
+            f"test_acc": test_accuracy,
+            f"test_f1": test_f1,
+            f"test_precision": test_precision,
+            f"test_recall": test_recall,
+            f"test_auc": test_auc if test_auc is not None else 0.0,
+        }
+    )
+    # Confusion Matrix
+    if wandb.config.NUM_CLASSES == 2:
+        cm = confusion_matrix(all_labels_np, all_preds_np)
+        class_names = ["Normal", "Osteoporosis"]
+    else:
+        cm = confusion_matrix(all_labels_np, all_preds_np)
+        class_names = ["Normal", "Osteopenia", "Osteoporosis"]
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=class_names,
+        yticklabels=class_names,
+    )
+    plt.xlabel("Predicted Label")
+    plt.ylabel("True Label")
+    plt.title(f"Confusion Matrix - {model_name}")
+    wandb.log({f"{model_name}_confusion_matrix": wandb.Image(plt)})
+    plt.close()
+
+    # Classification Report + Per-Class Metrics
+    report = classification_report(
+        all_labels_np, all_preds_np, output_dict=True, zero_division=0
+    )
+    wandb.log(
+        {f"{model_name}_classification_report": report}
+    )  # Log per-class metrics (optional)
+    for label, metrics in report.items():
+        if isinstance(metrics, dict):
+            for metric_name, value in metrics.items():
+                wandb.log({f"{model_name}_{label}_{metric_name}": value})
+
+    # Process patient details CSV and merge with predictions if using metabolic test data
+    if wandb.config.USE_METABOLIC_FOR_TEST:
+        try:
+            # Create predictions DataFrame
+            df_pred = pd.DataFrame(
+                {
+                    "labels": all_labels,
+                    "preds": all_preds,
+                    "probs": all_probs,
+                    "path": all_images_path,
+                    "leg_tag": all_image_legs,
+                }
+            )
+
+            # Load patient details CSV (try both Excel and CSV formats)
+            patient_details_path = "data/new_data/patient_details.csv"
+            if os.path.exists(patient_details_path):
+                df_patient = pd.read_csv(patient_details_path)
+            else:
+                print("Warning: Patient details file not found")
+                df_patient = None
+
+            if df_patient is not None:
+                # Ensure the DataFrame has the necessary structure for probabilities
+                if "probs_class_0" not in df_patient.columns:
+                    df_patient["probs_class_0"] = None
+                    df_patient["probs_class_1"] = None
+                    df_patient["probs_class_2"] = None
+
+                # Merge predictions with patient details
+                df_merged = df_patient.reset_index().merge(
+                    df_pred, left_on="Patient Id", right_on="path"
+                )
+
+                # Extract individual probability classes
+                df_merged[["probs_class_0", "probs_class_1", "probs_class_2"]] = (
+                    pd.DataFrame(df_merged["probs"].tolist(), index=df_merged.index)
+                )
+
+                # Save the merged DataFrame
+                output_csv_path = f"patient_details_with_probs_output_{model_name}.csv"
+                df_merged.to_csv(output_csv_path, index=False)
+
+                # Log the CSV file to wandb
+                artifact = wandb.Artifact(f"test_metabolic_{model_name}", type="csv")
+                artifact.add_file(output_csv_path)
+                wandb.log_artifact(artifact)
+
+                print(f"Patient details with predictions saved to: {output_csv_path}")
+                print(f"CSV file logged to wandb")
+
+                # Log some summary statistics
+                wandb.log(
+                    {
+                        f"{model_name}_total_patients": len(df_merged),
+                        f"{model_name}_avg_prob_normal": df_merged[
+                            "probs_class_0"
+                        ].mean(),
+                        f"{model_name}_avg_prob_osteopenia": df_merged[
+                            "probs_class_1"
+                        ].mean(),
+                        f"{model_name}_avg_prob_osteoporosis": df_merged[
+                            "probs_class_2"
+                        ].mean(),
+                    }
+                )
+
+        except Exception as e:
+            print(f"Error processing patient details: {e}")

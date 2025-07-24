@@ -39,7 +39,7 @@ class SoftVotingEnsemble(EnsembleModel):
             assert arch in _MODEL_MAP, f"Unknown architecture: {arch}"
             builder = _MODEL_MAP[arch]
 
-            model = builder(pretrained=False)
+            model = builder()
             state = torch.load(Path(ckpt), map_location=self.device)
             model.load_state_dict(state)
             model.eval().to(self.device)

@@ -26,9 +26,6 @@ def parse_args():
         "--MODEL_NAME", type=str, default=config.MODEL_NAME, help="MODEL NAME"
     )
     parser.add_argument(
-        "--BACKBONE_NAME", type=str, default=config.BACKBONE_NAME, help="BACKBONE_NAME"
-    )
-    parser.add_argument(
         "--USE_OSTEOPENIA",
         type=bool,
         default=config.USE_OSTEOPENIA,

@@ -18,7 +18,7 @@ LEARNING_RATE = 0.0001
 ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = True
 USE_CLAHE = False
-MODEL_NAME = "ResNet50"
+MODEL_NAME = "densenet121"
 USE_OSTEOPENIA = True  # Set to False if you want to exclude Osteopenia class from training
 SKIP_DUP_DATA = False
 # Augmentation configuration (example)
@@ -35,7 +35,6 @@ CONFIDENCE_PENALTY_WEIGHT = 2.0
 LABEL_SMOOTHING_EPSILON = 0.1
 RESNET_LAYERS_TO_TRAIN = ["fc","layer2","layer3","layer4"]
 DROPOUT = 0.5
-BACKBONE_NAME = "resnet34"
 USE_METABOLIC_FOR_TEST = False  
 USE_K_FOLD = False
 K_FOLDS = 5

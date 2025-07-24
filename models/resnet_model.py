@@ -6,21 +6,17 @@ from collections import OrderedDict
 import timm                     # pip install timm
 
 
-def get_timm_model(weights_path=None):
+def get_timm_model(weights_path=None,name=None):
     """
     Returns model, feature_dim.
     name ∈ {"resnet34","resnet50","densenet121","efficientnet_b0"}
     """
-import torch.nn as nn
-from torchvision import models
-import timm
-from collections import OrderedDict
 
-def build_model():
     num_classes = wandb.config.NUM_CLASSES
     dropout = wandb.config.DROPOUT
-    name = wandb.config.BACKBONE_NAME
-
+    if name==None:
+        name = wandb.config.MODEL_NAME
+    
     if name == "resnet34":
         model = models.resnet34(weights="ResNet34_Weights.DEFAULT")
         num_ftrs = model.fc.in_features

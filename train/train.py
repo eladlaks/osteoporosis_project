@@ -16,6 +16,7 @@ from models.resnet_model import get_timm_model
 from models.dino_model import get_dinov2_model
 from torchvision import transforms
 from preprocessing.clahe import CLAHETransform
+from train.K_fold_train import run_kfold_cross_validation
 from utils.logger import init_wandb
 from collections import Counter
 import torch
@@ -316,18 +317,21 @@ def run_training(args):
         )
     else:
         scheduler = None
-    train_model(
-        model,
-        model_name,
-        train_loader,
-        val_loader,
-        test_loader,
-        criterion,
-        optimizer,
-        scheduler,
-        eval_transform=eval_transform,
-        train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
-    )
+    if wandb.config.USE_K_FOLD:
+        run_kfold_cross_validation(model, optimizer, criterion, args,wandb.config)
+    else:
+        train_model(
+            model,
+            model_name,
+            train_loader,
+            val_loader,
+            test_loader,
+            criterion,
+            optimizer,
+            scheduler,
+            eval_transform=eval_transform,
+            train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
+        )
     # ==== Optional Fine-Tuning on Low Confidence Samples ====
     if wandb.config.USE_HARD_SAMPLING:
         from dataset_handler.filtered_dataset import FilteredImageDataset
@@ -809,3 +813,4 @@ def use_best_model_gideon(best_model,model_name,best_model_path,test_loader,crit
 
         except Exception as e:
             print(f"Error processing patient details: {e}")
+

@@ -32,10 +32,10 @@ def parse_args():
         help="USE OSTEOPENIA",
     )
     parser.add_argument(
-        "--USE_METABOLIC_FOR_TEST",
+        "--USE_TEST_DATA_DIR",
         type=bool,
-        default=config.USE_METABOLIC_FOR_TEST,
-        help="USE_METABOLIC_FOR_TEST",
+        default=config.USE_TEST_DATA_DIR,
+        help="USE_TEST_DATA_DIR",
     )
     parser.add_argument(
         "--USE_SCHEDULER",
@@ -111,6 +111,18 @@ def parse_args():
     type=float,
     default=1.0,
     help="Multiplier for LR during fine-tuning with hard sampling",
+    )
+    parser.add_argument(
+    "--DROPOUT",
+    type=float,
+    default=config.DROPOUT,
+    help="dropout parameter",
+    )
+    parser.add_argument(
+    "--RESNET_LAYERS_TO_TRAIN",
+    type=list,
+    default=config.RESNET_LAYERS_TO_TRAIN,
+    help="which layers to unfreeze",
     )
     return parser, parser.parse_args()
 

@@ -37,14 +37,14 @@ parameters:
   NUM_WORKERS:
     values: [1]
   ENSEMBLE_TYPE:
-    values: ["soft"]          # or weighted / stacking / none
+    values: ["soft"]          
   CKPT_LIST:
     values: ["['saved_models/ResNet50_best.pth','saved_models/VGG19_best.pth']"]
   ARCH_LIST:
     values: ["['resnet50','vgg19']"]
-  ENSEMBLE_WEIGHTS:          # only when ENSEMBLE_TYPE == weighted
+  ENSEMBLE_WEIGHTS:          
     values: ["[0.6,0.4]"]
-  META_CLF_PATH:             # only when stacking
+  META_CLF_PATH:            
     values: ["saved_models/meta_clf.pkl"]
   DATA_DIR:
     values: ["data/step_6_cropped_only_both"]

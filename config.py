@@ -18,7 +18,7 @@ LEARNING_RATE = 0.0001
 ALEX_FREEZE_FEATURES = True
 USE_TRANSFORM_AUGMENTATION_IN_TRAINING = True
 USE_CLAHE = False
-MODEL_NAME = "ResNet50"
+MODEL_NAME = "ResNet34"
 USE_OSTEOPENIA = (
     True  # Set to False if you want to exclude Osteopenia class from training
 )

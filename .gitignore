@@ -13,7 +13,8 @@ data/*
 *.log
 *.wandb
 wandb**.json
-wandb/**/**
+wandb/**
 .DS_Store
 *.zip
 low_conf_samples.txt
+**.wandb

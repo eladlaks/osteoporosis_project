@@ -27,7 +27,7 @@ def dedup_images_from_folder(image_dir, th=5):
         non_empty_count = sum(
             1 for v in duplicates.values() if len(v) == i
         )  # “if v” is True when the list is non‑empty
-        print(f"there are {non_empty_count/i} images with {i+1} shows")
+        print(f"there are {round(non_empty_count/i+1)} images with {i+1} shows")
         if non_empty_count > 0:
             most_dups += 1
     non_empty_count = sum(

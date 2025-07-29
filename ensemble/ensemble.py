@@ -180,3 +180,15 @@ def evaluate_predictions(true_labels, predicted_labels, all_probs, class_names):
     plt.tight_layout()
     plt.show()
     return auc, f1, acc, cm
+
+
+def ensemble_models_from_path(folder_path, class_names, test_dataset):
+    num_classes = len(class_names)
+    models = load_models_from_folder(folder_path, num_classes)
+    filenames, true_labels, predicted_labels, all_probs = ensemble_test_predictions(
+        models, test_dataset
+    )
+    class_names = ["normal", "osteopenia", "osteoporosis"]
+    auc, f1, acc, cm = evaluate_predictions(
+        true_labels, predicted_labels, all_probs, class_names
+    )

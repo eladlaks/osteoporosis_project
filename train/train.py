@@ -159,7 +159,7 @@ def train_model(
         )
 
 
-def get_datasets():
+def get_dataloaders():
     size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (512, 512)
     prepare_to_network_transforms = [
         transforms.Resize(size),
@@ -261,7 +261,16 @@ def get_datasets():
         shuffle=False,
         num_workers=wandb.config.NUM_WORKERS,
     )
-    return train_loader, val_loader, test_loader
+    return (
+        train_loader,
+        val_loader,
+        test_loader,
+        test_dataset,
+        train_dataset,
+        val_dataset,
+        train_transformations,
+        eval_transform,
+    )
 
 
 def run_training(args):
@@ -269,107 +278,16 @@ def run_training(args):
 
     wandb.login(key=WANDB_API_KEY)
     init_wandb(project_name="models_for_ensemble", args=args)
-    size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (512, 512)
-    prepare_to_network_transforms = [
-        transforms.Resize(size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ]
-
-    augmentation_transform = [
-        transforms.RandomResizedCrop(224),
-        transforms.RandomRotation(degrees=10),  # Small random rotation
-        transforms.RandomHorizontalFlip(p=0.5),  # 50% chance to flip
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # Small shifts
-        transforms.ColorJitter(
-            brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
-        ),  # Adjust contrast
-    ]
-
-    all_transformation = []
-    train_transformations = []
-    if wandb.config.USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
-        train_transformations += augmentation_transform
-    if wandb.config.USE_CLAHE:
-        all_transformation += (
-            CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
-        )  # Apply CLAHE with custom parameters
-
-    all_transformation += prepare_to_network_transforms
-    train_transformations += all_transformation
-    eval_transform = transforms.Compose(all_transformation)
-
-    train_transform = transforms.Compose(train_transformations)
-
-    # Load the full dataset
-    full_dataset = ImageDataset(wandb.config.DATA_DIR)
-    wandb.config.NUM_CLASSES = len(set(full_dataset.labels))
-    total_size = len(full_dataset)
-    if wandb.config.USE_TEST_DATA_DIR:
-        train_size = int(0.8 * total_size)
-        val_size = total_size - train_size
-        train_dataset, val_dataset = torch.utils.data.random_split(
-            full_dataset, [train_size, val_size]
-        )
-        test_dataset = ImageDataset(wandb.config.TEST_DATA_DIR)
-        test_dataset.transform = eval_transform
-
-    else:
-        train_size = int(0.7 * total_size)
-        val_size = int(0.15 * total_size)
-        test_size = total_size - train_size - val_size
-
-        # Randomly split the dataset
-        train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
-            full_dataset, [train_size, val_size, test_size]
-        )
-        test_dataset.dataset.transform = eval_transform
-
-    train_dataset.dataset.transform = train_transform
-    val_dataset.dataset.transform = eval_transform
-
-    # Check if we should use weighted sampler
-    if wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER:
-        # Compute class distribution for the training dataset
-        labels = [
-            train_dataset.dataset[i][1] for i in train_dataset.indices
-        ]  # Extract labels
-        class_counts = Counter(labels)
-        num_samples = max(class_counts.values()) * len(
-            class_counts
-        )  # Total balanced samples
-
-        # Compute class weights (inverse of frequencies)
-        class_weights = {cls: 1.0 / count for cls, count in class_counts.items()}
-        weights = [class_weights[label] for label in labels]
-
-        # Define sampler for balanced training
-        train_sampler = WeightedRandomSampler(weights, num_samples, replacement=True)
-    else:
-        train_sampler = None
-
-    # Create DataLoaders
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=wandb.config.BATCH_SIZE,
-        sampler=(
-            train_sampler if wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER else None
-        ),  # Apply sampler if enabled
-        shuffle=not wandb.config.TRAIN_WEIGHTED_RANDOM_SAMPLER,  # Shuffle only if not using sampler
-        num_workers=wandb.config.NUM_WORKERS,
-    )
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=wandb.config.BATCH_SIZE,
-        shuffle=False,
-        num_workers=wandb.config.NUM_WORKERS,
-    )
-    test_loader = DataLoader(
+    (
+        train_loader,
+        val_loader,
+        test_loader,
         test_dataset,
-        batch_size=wandb.config.BATCH_SIZE,
-        shuffle=False,
-        num_workers=wandb.config.NUM_WORKERS,
-    )
+        train_dataset,
+        val_dataset,
+        train_transformations,
+        eval_transform,
+    ) = get_dataloaders()
     # Logic to select the appropriate loss function
     if wandb.config.USE_LABEL_SMOOTHING and wandb.config.USE_CONFIDENCE_WEIGHTED_LOSS:
         criterion = CombinedLabelSmoothingConfidenceWeightedLoss(
@@ -439,7 +357,6 @@ def run_training(args):
             criterion,
             optimizer,
             scheduler,
-            eval_transform=eval_transform,
             train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
     # ==== Optional Fine-Tuning on Low Confidence Samples ====
@@ -454,7 +371,7 @@ def run_training(args):
         hard_dataset = FilteredImageDataset(
             root_dir=wandb.config.DATA_DIR,
             selected_paths_set=selected_paths,
-            transform=train_transform,
+            transform=train_transformations,
         )
         hard_loader = DataLoader(
             hard_dataset,
@@ -477,7 +394,6 @@ def run_training(args):
             criterion,
             optimizer,
             scheduler,
-            eval_transform=eval_transform,
             train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
     wandb.finish()

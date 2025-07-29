@@ -130,7 +130,9 @@ def train_model(
     print(
         f"Best model saved with validation loss: {best_val_loss:.4f}"
     )  # Final evaluation on test set
-    use_best_model_gideon(best_model,model_name,best_model_path,test_loader,criterion)
+    use_best_model_gideon(
+        best_model, model_name, best_model_path, test_loader, criterion
+    )
 
     # Save low-confidence samples for hard sampling===
     if wandb.config.USE_HARD_SAMPLING:
@@ -138,7 +140,7 @@ def train_model(
         train_eval_loader = DataLoader(
             train_dataset,  # not full_dataset!
             batch_size=wandb.config.BATCH_SIZE,
-            shuffle=False
+            shuffle=False,
         )
 
         low_conf_paths = get_low_confidence_samples(
@@ -157,11 +159,7 @@ def train_model(
         )
 
 
-def run_training(args):
-    # Initialize wandb for this run
-
-    wandb.login(key=WANDB_API_KEY)
-    init_wandb(project_name="models_for_ensemble", args=args)
+def get_dataloaders():
     size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (512, 512)
     prepare_to_network_transforms = [
         transforms.Resize(size),
@@ -169,16 +167,14 @@ def run_training(args):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
 
-
     augmentation_transform = [
         transforms.RandomResizedCrop(224),
         transforms.RandomRotation(degrees=10),  # Small random rotation
         transforms.RandomHorizontalFlip(p=0.5),  # 50% chance to flip
         transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),  # Small shifts
-        transforms.ColorJitter(brightness=0.2, 
-                           contrast=0.2, 
-                           saturation=0.2, 
-                           hue=0.1),  # Adjust contrast
+        transforms.ColorJitter(
+            brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
+        ),  # Adjust contrast
     ]
 
     all_transformation = []
@@ -265,6 +261,33 @@ def run_training(args):
         shuffle=False,
         num_workers=wandb.config.NUM_WORKERS,
     )
+    return (
+        train_loader,
+        val_loader,
+        test_loader,
+        test_dataset,
+        train_dataset,
+        val_dataset,
+        train_transformations,
+        eval_transform,
+    )
+
+
+def run_training(args):
+    # Initialize wandb for this run
+
+    wandb.login(key=WANDB_API_KEY)
+    init_wandb(project_name="models_for_ensemble", args=args)
+    (
+        train_loader,
+        val_loader,
+        test_loader,
+        test_dataset,
+        train_dataset,
+        val_dataset,
+        train_transformations,
+        eval_transform,
+    ) = get_dataloaders()
     # Logic to select the appropriate loss function
     if wandb.config.USE_LABEL_SMOOTHING and wandb.config.USE_CONFIDENCE_WEIGHTED_LOSS:
         criterion = CombinedLabelSmoothingConfidenceWeightedLoss(
@@ -302,7 +325,12 @@ def run_training(args):
         model_func = get_resnet_model
     elif model_name == "DINOv2":
         model_func = get_dinov2_model
-    elif model_name == "resnet34" or model_name == "resnet50" or model_name == "densenet121" or model_name == "efficientnet_b0":
+    elif (
+        model_name == "resnet34"
+        or model_name == "resnet50"
+        or model_name == "densenet121"
+        or model_name == "efficientnet_b0"
+    ):
         model_func = get_timm_model
     else:
         raise ValueError(f"Unknown model name: {model_name}")
@@ -318,7 +346,7 @@ def run_training(args):
     else:
         scheduler = None
     if wandb.config.USE_K_FOLD:
-        run_kfold_cross_validation(model, optimizer, criterion, args,wandb.config)
+        run_kfold_cross_validation(model, optimizer, criterion, args, wandb.config)
     else:
         train_model(
             model,
@@ -329,7 +357,6 @@ def run_training(args):
             criterion,
             optimizer,
             scheduler,
-            eval_transform=eval_transform,
             train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
     # ==== Optional Fine-Tuning on Low Confidence Samples ====
@@ -344,7 +371,7 @@ def run_training(args):
         hard_dataset = FilteredImageDataset(
             root_dir=wandb.config.DATA_DIR,
             selected_paths_set=selected_paths,
-            transform=train_transform,
+            transform=train_transformations,
         )
         hard_loader = DataLoader(
             hard_dataset,
@@ -352,7 +379,6 @@ def run_training(args):
             shuffle=True,
             num_workers=wandb.config.NUM_WORKERS,
         )
-        
 
         # Reinitialize optimizer with difernatial learning rate
         fine_tune_lr = wandb.config.LEARNING_RATE * wandb.config.FINE_TUNE_LR_MULTIPLIER
@@ -368,13 +394,12 @@ def run_training(args):
             criterion,
             optimizer,
             scheduler,
-            eval_transform=eval_transform,
             train_dataset=train_dataset,  # Pass the train_dataset for low-confidence sampling
         )
     wandb.finish()
 
 
-def use_best_model(best_model,model_name,best_model_path,test_loader,criterion):
+def use_best_model(best_model, model_name, best_model_path, test_loader, criterion):
 
     artifact = wandb.Artifact(f"best_model_{model_name}", type="model")
     artifact.add_file(best_model_path)
@@ -574,8 +599,9 @@ def use_best_model(best_model,model_name,best_model_path,test_loader,criterion):
             print(f"Error processing patient details: {e}")
 
 
-
-def use_best_model_gideon(best_model,model_name,best_model_path,test_loader,criterion):
+def use_best_model_gideon(
+    best_model, model_name, best_model_path, test_loader, criterion
+):
 
     artifact = wandb.Artifact(f"best_model_{model_name}", type="model")
     artifact.add_file(best_model_path)
@@ -592,9 +618,9 @@ def use_best_model_gideon(best_model,model_name,best_model_path,test_loader,crit
     all_probs = []
     all_images_path = []
     all_image_legs = []
-    
-# ----- save *single* logits/labels file -----
-    run_tag = f"{model_name}_best"                  # <-- שם קבוע
+
+    # ----- save *single* logits/labels file -----
+    run_tag = f"{model_name}_best"  # <-- שם קבוע
     # Validation step
     best_model.eval()
     val_loss = 0.0
@@ -604,12 +630,13 @@ def use_best_model_gideon(best_model,model_name,best_model_path,test_loader,crit
 
     # remove previous version if it exists
     from pathlib import Path
-    pt_prev  = Path("saved_models") / f"{run_tag}_val_logits.pt"
-    csv_prev = pt_prev.with_suffix(".csv")
-    if pt_prev.exists():  pt_prev.unlink()
-    if csv_prev.exists(): csv_prev.unlink()
 
-    
+    pt_prev = Path("saved_models") / f"{run_tag}_val_logits.pt"
+    csv_prev = pt_prev.with_suffix(".csv")
+    if pt_prev.exists():
+        pt_prev.unlink()
+    if csv_prev.exists():
+        csv_prev.unlink()
 
     with torch.no_grad():
         for images, labels, images_path in test_loader:
@@ -647,24 +674,24 @@ def use_best_model_gideon(best_model,model_name,best_model_path,test_loader,crit
                 ]
             )
 
-
     pt_file = save_test_outputs(
         run_tag=run_tag,
         logits=torch.cat(test_logits_batches),
         labels=torch.cat(test_label_batches),
-        img_paths=test_path_batches
+        img_paths=test_path_batches,
     )
 
     # ----- W&B artifact (auto-versioned) -----
     artifact = wandb.Artifact(
-        f"{model_name}_test_outputs", type="model-eval",
-        metadata={"source": "best"}                 # optional meta
+        f"{model_name}_test_outputs",
+        type="model-eval",
+        metadata={"source": "best"},  # optional meta
     )
-    artifact.add_file(best_model_path)              # weights
-    artifact.add_file(pt_file)                      # logits+labels
+    artifact.add_file(best_model_path)  # weights
+    artifact.add_file(pt_file)  # logits+labels
     csv_file = pt_file.with_suffix(".csv")
     if csv_file.exists():
-        artifact.add_file(csv_file)                 # CSV view
+        artifact.add_file(csv_file)  # CSV view
     wandb.log_artifact(artifact)
 
     avg_test_loss = test_loss / len(test_loader.dataset)
@@ -813,4 +840,3 @@ def use_best_model_gideon(best_model,model_name,best_model_path,test_loader,crit
 
         except Exception as e:
             print(f"Error processing patient details: {e}")
-

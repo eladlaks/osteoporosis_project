@@ -1,10 +1,10 @@
-path: ./knee
+path: ./knee_v2
 train: train/images
 val: valid/images
 test: test/images
 
 nc: 1
-names: ['knee']
+names: ['knee_v2']
 
 roboflow:
   workspace: yair-etkes-iy1bq

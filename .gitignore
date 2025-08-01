@@ -18,3 +18,4 @@ wandb/**
 *.zip
 low_conf_samples.txt
 **.wandb
+yolo/knee_v2/**

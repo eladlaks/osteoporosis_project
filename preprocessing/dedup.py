@@ -27,21 +27,26 @@ def dedup_images_from_folder(image_dir, th=5):
         non_empty_count = sum(
             1 for v in duplicates.values() if len(v) == i
         )  # “if v” is True when the list is non‑empty
-        print(f"there are {round(non_empty_count/i+1)} images with {i+1} shows")
+        print(f"there are {round(non_empty_count/i+1)-1} images with {i+1} shows")
         if non_empty_count > 0:
             most_dups += 1
     non_empty_count = sum(
         1 for v in duplicates.values() if len(v) > 10
     )  # “if v” is True when the list is non‑empty
     print(f"there are {non_empty_count} images with more than {10} shows")
-    filtered_dict = {k: v for k, v in duplicates.items() if len(v) > most_dups}
-    first_key = next(iter(filtered_dict))  # ➜ 'a'
-    first_value = filtered_dict[first_key][0]
+    filtered_dict = {k: v for k, v in duplicates.items() if len(v) > most_dups - 1}
+    print(most_dups)
+    duplicates_list = []
+    if most_dups > 0:
+        first_key = next(iter(filtered_dict))  # ➜ 'a'
+        first_value = filtered_dict[first_key][0]
 
-    plot_duplicates(image_dir=image_dir, duplicate_map=duplicates, filename=first_value)
-    duplicates_list = phasher.find_duplicates_to_remove(
-        encoding_map=encodings, max_distance_threshold=th, recursive=True
-    )
+        plot_duplicates(
+            image_dir=image_dir, duplicate_map=duplicates, filename=first_value
+        )
+        duplicates_list = phasher.find_duplicates_to_remove(
+            encoding_map=encodings, max_distance_threshold=th, recursive=True
+        )
     print(f"there are {duplicates_list.__len__()} to remove")
     os.path.join(image_dir, "train")
     images_to_remove = duplicates_list

@@ -137,7 +137,7 @@ def crop_and_save_knees(input_path, output_path, model, categories):
                     )
                     cv2.imwrite(left_output_path, left_knee)
 
-                if right_knee is not None:
+                elif right_knee is not None:
                     # left_knee = cv2.flip(right_knee,1)
                     # both_knees = cv2.hconcat([right_knee, right_knee])
                     # both_output_path = os.path.join(output_category_path, f"{filename_no_ext}_right{ext}")
@@ -146,6 +146,8 @@ def crop_and_save_knees(input_path, output_path, model, categories):
                         output_category_path, f"{filename_no_ext}_left{ext}"
                     )
                     cv2.imwrite(right_output_path, right_knee)
+                else:
+                    print(f"⚠️ didnt found any knee!: {img_path}")
 
     print("\n✅ Step 2 Complete: Cropped knees saved with adaptive square logic.")
 

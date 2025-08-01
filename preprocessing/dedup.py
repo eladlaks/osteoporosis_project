@@ -48,12 +48,6 @@ def dedup_images_from_folder(image_dir, th=5):
 
     # Paths
     source_folder = os.path.join(image_dir)  # Folder containing the images
-    destination_folder = os.path.join(
-        source_folder, "deleted_images"
-    )  # Folder for moved images
-
-    # Ensure the destination folder exists
-    os.makedirs(destination_folder, exist_ok=True)
 
     # del files
     for image_name in images_to_remove:

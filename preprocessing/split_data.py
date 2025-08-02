@@ -19,7 +19,7 @@ def split_dataset(src_dir, train_dir, test_dir, test_ratio=0.2, seed=42):
             or class_folder == test_dir
             or class_folder not in ["Normal", "Osteopenia", "Osteoporosis"]
         ):
-            break
+            pass
         class_path = src_dir / class_folder
         if not class_path.is_dir():
             continue

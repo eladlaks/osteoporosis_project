@@ -667,12 +667,15 @@ def use_best_model_gideon(
                     for p in images_path
                 ]
             )
-            all_image_legs.extend(
-                [
-                    os.path.splitext(os.path.basename(p))[0].split("_")[1]
-                    for p in images_path
-                ]
-            )
+            try:
+                all_image_legs.extend(
+                    [
+                        os.path.splitext(os.path.basename(p))[0].split("_")[1]
+                        for p in images_path
+                    ]
+                )
+            except:
+                all_image_legs.extend(["no_crop" for p in images_path])
 
     pt_file = save_test_outputs(
         run_tag=run_tag,

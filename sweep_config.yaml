@@ -13,7 +13,7 @@ parameters:
   FINE_TUNE_LR_MULTIPLIER: 
     values: [0.1]
   NUM_EPOCHS:
-    values: [3]
+    values: [15]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
     values: [True]
   USE_CLAHE:
@@ -21,7 +21,7 @@ parameters:
   USE_OSTEOPENIA:
     values: [True]
   USE_TEST_DATA_DIR:
-    values: [True]
+    values: [False]
   USE_LABEL_SMOOTHING:
     values: [True]
   LABEL_SMOOTHING_EPSILON:
@@ -37,7 +37,7 @@ parameters:
   NUM_WORKERS:
     values: [1]
   DATA_DIR:
-    values: ["/content/osteoporosis_project/data/grand_finalle_data/no_yolo/train_data"]
+    values: ["data/data_for_exp/cropped_by_yolo"]
   TEST_DATA_DIR:
     values: ["/content/osteoporosis_project/data/grand_finalle_data/no_yolo/test_data"]
   RESNET_LAYERS_TO_TRAIN:

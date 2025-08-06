@@ -19,3 +19,4 @@ wandb/**
 low_conf_samples.txt
 **.wandb
 yolo/knee_v2/**
+saved_models/**

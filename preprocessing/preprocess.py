@@ -70,7 +70,9 @@ def adaptive_centered_square_crop(image, x1, y1, x2, y2, output_size=224):
     return resized
 
 
-def crop_and_save_knees(input_path, output_path, model, categories):
+def crop_and_save_knees(
+    input_path, output_path, model, categories, always_two_knees=False
+):
     """Uses YOLO to detect and save square knee crops using avg(w,h) with resize to 224x224."""
     for category in categories:
         category_path = os.path.join(input_path, category)
@@ -128,22 +130,20 @@ def crop_and_save_knees(input_path, output_path, model, categories):
                 cv2.imwrite(both_output_path, both_knees)
             else:
                 if left_knee is not None:
-                    # left_knee = cv2.flip(left_knee,1)
-                    # both_knees = cv2.hconcat([left_knee, left_knee])
-                    # both_output_path = os.path.join(output_category_path, f"{filename_no_ext}_left{ext}")
-                    # cv2.imwrite(both_output_path, both_knees)
+                    if always_two_knees:
+                        left_knee_dup = cv2.flip(left_knee, 1)
+                        left_knee = cv2.hconcat([left_knee_dup, left_knee])
                     left_output_path = os.path.join(
                         output_category_path, f"{filename_no_ext}_left{ext}"
                     )
                     cv2.imwrite(left_output_path, left_knee)
 
                 elif right_knee is not None:
-                    # left_knee = cv2.flip(right_knee,1)
-                    # both_knees = cv2.hconcat([right_knee, right_knee])
-                    # both_output_path = os.path.join(output_category_path, f"{filename_no_ext}_right{ext}")
-                    # cv2.imwrite(both_output_path, right_knee)
+                    if always_two_knees:
+                        right_knee_dup = cv2.flip(right_knee, 1)
+                        right_knee = cv2.hconcat([right_knee_dup, right_knee])
                     right_output_path = os.path.join(
-                        output_category_path, f"{filename_no_ext}_left{ext}"
+                        output_category_path, f"{filename_no_ext}_right{ext}"
                     )
                     cv2.imwrite(right_output_path, right_knee)
                 else:

@@ -6,8 +6,8 @@ import shutil
 
 def dedup_images_from_folder(image_dir, th=5, only_create_duplicates=False):
 
-    copy_to_two_folders(image_dir)
-    image_dir = os.path.join(image_dir, "no_dups_data")
+    processed_folder = copy_to_two_folders(image_dir)
+    image_dir = processed_folder
     phasher = PHash()
     # Generate encodings for all images in an image directory
     encodings = phasher.encode_images(image_dir, recursive=True)
@@ -63,6 +63,7 @@ def dedup_images_from_folder(image_dir, th=5, only_create_duplicates=False):
                 # Ensure the destination subfolder exists
                 if os.path.exists(source_path):
                     os.remove(source_path)
+                    print(f"removed: {source_path}")
                 else:
                     print(f"File not found: {image_name}")
             except Exception as e:
@@ -77,7 +78,10 @@ def copy_to_two_folders(source_folder):
     """
     # ✅ Create target folders INSIDE source_folder
     # original_folder = os.path.join(source_folder, "original_data")
-    processed_folder = os.path.join(source_folder, "no_dups_data")
+    processed_folder = os.path.join(
+        os.path.split(source_folder)[:-1][0],
+        os.path.split(source_folder)[-1] + "_no_dups_data",
+    )
 
     # os.makedirs(original_folder, exist_ok=True)
     os.makedirs(processed_folder, exist_ok=True)
@@ -101,6 +105,7 @@ def copy_to_two_folders(source_folder):
             shutil.copy2(src_path, dst_processed)
 
     print(f"✅ All files & folders copied to '{processed_folder}'")
+    return processed_folder
 
 
 def find_multiclass_images(image_dict):
@@ -120,8 +125,9 @@ def find_multiclass_images(image_dict):
 
         # If ANY value has a different class than the key, mark it
         if any(val_class != key_class for val_class in value_classes):
-            multiclass_images.append(key_path)
-            multiclass_images.extend(value_paths)
+            component = [key_path]
+            component.extend(value_paths)
+            multiclass_images.append(component)
 
     return multiclass_images
 

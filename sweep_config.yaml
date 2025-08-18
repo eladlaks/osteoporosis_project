@@ -5,7 +5,7 @@ metric:
 
 parameters:
   MODEL_NAME:
-    values: ["resnet34"]
+    values: ["ResNet50","resnet50","resnet34","densenet121"]
   BATCH_SIZE:
     values: [32]
   LEARNING_RATE:
@@ -13,11 +13,11 @@ parameters:
   FINE_TUNE_LR_MULTIPLIER: 
     values: [0.1]
   NUM_EPOCHS:
-    values: [3]
+    values: [20]
   USE_TRANSFORM_AUGMENTATION_IN_TRAINING:
     values: [True]
   USE_CLAHE:
-    values: [False]
+    values: [True]
   USE_OSTEOPENIA:
     values: [True]
   USE_TEST_DATA_DIR:
@@ -31,18 +31,18 @@ parameters:
   USE_HARD_SAMPLING:
     values: [False]
   CONFIDENCE_THRESHOLD:
-    values: [0.85]
+    values: [0.7]
   CONFIDENCE_PENALTY_WEIGHT:
     values: [2.0]
   NUM_WORKERS:
     values: [1]
   DATA_DIR:
-    values: ["/content/osteoporosis_project/data/grand_finalle_data/no_yolo/train_data"]
+    values: ["data/final_version/train_data/cropped_by_yolo"]
   TEST_DATA_DIR:
-    values: ["/content/osteoporosis_project/data/grand_finalle_data/no_yolo/test_data"]
+    values: ["data/final_version/test_data/cropped_by_yolo"]
   RESNET_LAYERS_TO_TRAIN:
-    values: [["fc","layer2","layer3","layer4"]]
+    values: [["fc","layer4"]]
   DROPOUT:
-    values: [0.5]
+    values: [0.5,0.3,0.8]
   USE_SCHEDULER: 
-    values: [False]
+    values: [True,False]

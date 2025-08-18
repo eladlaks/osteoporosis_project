@@ -24,11 +24,11 @@ def dedup_images_from_folder(image_dir, th=5, only_create_duplicates=False):
             f"there are {len(duplicates) - non_empty_count_1 } unique images from {len(duplicates)} images"
         )
         most_dups = 0
-        for i in range(1, 10):
+        for i in range(0, 10):
             non_empty_count = sum(
                 1 for v in duplicates.values() if len(v) == i
             )  # “if v” is True when the list is non‑empty
-            print(f"there are {round(non_empty_count/i+1)-1} images with {i+1} shows")
+            print(f"there are {round(non_empty_count/(i+1))} images with {i+1} shows")
             if non_empty_count > 0:
                 most_dups += 1
         non_empty_count = sum(

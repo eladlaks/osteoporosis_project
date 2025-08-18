@@ -159,6 +159,7 @@ def train_model(
         )
 
 
+
 def get_dataloaders():
     size = (518, 518) if wandb.config.MODEL_NAME == "DINOv2" else (512, 512)
     prepare_to_network_transforms = [
@@ -341,7 +342,7 @@ def run_training(args):
     )
     if wandb.config.USE_SCHEDULER:
         scheduler = ReduceLROnPlateau(
-            optimizer, mode="min", patience=2, factor=0.2, verbose=True
+            optimizer, mode="min", patience=2, factor=0.2, verbose=True,min_lr=0.000001
         )
     else:
         scheduler = None

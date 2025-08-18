@@ -16,9 +16,15 @@ def get_timm_model(weights_path=None, name=None):
     dropout = wandb.config.DROPOUT
     if name == None:
         name = wandb.config.MODEL_NAME
-
     if name == "resnet34":
+        # Freeze all parameters initially
         model = models.resnet34(weights="ResNet34_Weights.DEFAULT")
+        for param in model.parameters():
+            param.requires_grad = False
+
+        # Unfreeze layers in the last ResNet block (layer4) and the fully connected layers
+        for param in model.layer4.parameters():
+            param.requires_grad = True  
         num_ftrs = model.fc.in_features
         model.fc = nn.Sequential(
             OrderedDict(
@@ -31,10 +37,16 @@ def get_timm_model(weights_path=None, name=None):
                 ]
             )
         )
-
+        
     elif name == "resnet50":
         model = models.resnet50(weights="ResNet50_Weights.DEFAULT")
         num_ftrs = model.fc.in_features
+        for param in model.parameters():
+            param.requires_grad = False
+
+        # Unfreeze layers in the last ResNet block (layer4) and the fully connected layers
+        for param in model.layer4.parameters():
+            param.requires_grad = True 
         model.fc = nn.Sequential(
             OrderedDict(
                 [
@@ -53,6 +65,12 @@ def get_timm_model(weights_path=None, name=None):
 
     elif name == "densenet121":
         model = models.densenet121(weights="DenseNet121_Weights.DEFAULT")
+
+        for name, param in model.features.named_parameters():
+            if not name.startswith("denseblock4") and not name.startswith("denseblock3"):  # keep last dense block trainable
+                param.requires_grad = False
+
+        # Replace the classifier
         num_ftrs = model.classifier.in_features
         model.classifier = nn.Sequential(
             OrderedDict(
@@ -66,7 +84,8 @@ def get_timm_model(weights_path=None, name=None):
             )
         )
 
-    elif name == "efficientnet_b0":
+
+    elif name == "efficientnet_b0" or name == "efficientnet":
         model = timm.create_model(
             "efficientnet_b0", pretrained=True, num_classes=num_classes
         )
